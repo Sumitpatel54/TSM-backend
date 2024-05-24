@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "build-container": "npx tsc",
-    "serve": "cd Backend && nodemon app/server.ts",
+    "serve": "nodemon app/server.ts",
     "serve-build": "nodemon build/app/server.js",
     "debug": "nodemon --inspect app/server.ts",
     "pm2": "NODE_ENV=production pm2 start build/app/server.js --watch -i max",
