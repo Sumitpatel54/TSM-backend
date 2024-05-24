@@ -1,0 +1,188 @@
+image: node:16
+
+options:
+  docker: true
+  size: 2x
+
+definitions:
+  caches:
+    sonar: ~/.sonar/cache
+  services:
+    docker:
+      memory: 4096
+  steps:
+    - step: &environment
+        name: Environment Abstraction for Staging
+        script:
+          - bash --version
+          - apt-get install openssh-client
+
+          # Validate env keys array file exists in app repo
+          - >
+            if [ ! -f $ENV_KEYS_ARRAY_FILE ]; then
+                echo "env keys array file not found!"
+                exit 1
+            fi
+          - cat $ENV_KEYS_ARRAY_FILE
+          # Validate staging environment file exists in env repo
+          - git clone git@bitbucket.org:ellingsensoftware/ellingsensoftware-environment.git
+          - >
+            if [ ! -f ellingsensoftware-environment/$APP_NAME/.env.staging ]; then
+                echo "env file not found!"
+                exit 1
+            fi
+
+          # Copy env file to be passed to next stage
+          - yes | cp -rf ellingsensoftware-environment/$APP_NAME/.env.staging .env.temp
+          - rm -rf ellingsensoftware-environment
+          - ls -alh
+          - cat .env.temp
+
+          # Validate all env keys in app repo and env repo match
+          - readarray -t app_env_keys < $ENV_KEYS_ARRAY_FILE
+          - >
+            for app_key in "${app_env_keys[@]}"; 
+              do echo $app_key; 
+            done
+          - readarray -t repo_env_key_values < .env.temp
+          - repo_env_keys=()
+          - >
+            for repo_key in "${repo_env_key_values[@]}"; 
+              do echo ${repo_key%%=*}; 
+              repo_env_keys+=("${repo_key%%=*}");
+            done
+          - diff_keys_array=(`echo ${app_env_keys[@]} ${repo_env_keys[@]} | tr ' ' '\n' | sort | uniq -u `)
+          - if ((${#diff_keys_array[@]})); then
+            echo;
+            echo "~~~~~~~~~~~~~~~~~~~~ PLEASE FIX IMMEDIATELY ~~~~~~~~~~~~~~~~~~~~";
+            echo "ENV files are invalid and have the following differences in them!";
+            echo "${diff_keys_array[@]}";
+            echo;
+            echo "$ENV_KEYS_ARRAY_FILE is missing the following keys :- ";
+            echo ${app_env_keys[@]} ${app_env_keys[@]} ${repo_env_keys[@]} | tr ' ' '\n' | sort | uniq -u;
+            echo;
+            echo "ellingsensoftware-environment/$APP_NAME/.env.staging is missing the following keys :-";
+            echo ${repo_env_keys[@]} ${repo_env_keys[@]} ${app_env_keys[@]} | tr ' ' '\n' | sort | uniq -u;
+            exit 1;
+            else
+            echo "ENV files are valid";
+            fi
+        artifacts:
+          - .env.temp
+
+    - step: &build-default
+        name: Build
+        caches:
+          - node
+          - sonar
+        script:
+          - npm install --force
+          - npm install -g typescript
+          - npm run build
+
+    - step: &build
+        name: Build
+        caches:
+          - node
+        script:
+          - npm install --force
+          - npm install -g typescript
+          - apt-get update
+          - apt-get install zip
+          - cp .env.temp .env
+          - npm run build
+          - cp .env build/.env
+          - cp public.key build/public.key
+          - cp private.key build/private.key
+          - zip -r build.zip appspec.yml package.json build scripts
+        artifacts:
+          - build.zip
+
+    - step: &sonar
+        name: SonarCloud
+        caches:
+          - node
+          - sonar
+        script:
+          - npm install jest
+          - npm run test -- --coverage --no-watch --no-progress --browsers=ChromeHeadlessNoSandbox
+          - pipe: sonarsource/sonarcloud-scan:1.4.0
+            variables:
+              SONAR_TOKEN: ${SONAR_TOKEN}
+              EXTRA_ARGS: '-Dsonar.sources=app -Dsonar.tests=app -Dsonar.test.inclusions="**/testing/**,**/*.spec.ts" -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info'
+          - pipe: sonarsource/sonarcloud-quality-gate:0.1.6
+
+    - step: &lint
+        name: Lint the node package
+        script:
+          - npm install eslint --force
+          - npm run lint
+        caches:
+          - node
+
+    - step: &security
+        name: Security Scan
+        script:
+          - pipe: atlassian/git-secrets-scan:0.5.1
+
+    - step: &s3-staging
+        name: Upload to S3 staging
+        services:
+          - docker
+        script:
+          # Test upload
+          - pipe: atlassian/aws-code-deploy:0.2.10
+            variables:
+              AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+              AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+              AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+              COMMAND: "upload"
+              APPLICATION_NAME: ${APPLICATION_NAME_STAGING}
+              ZIP_FILE: "build.zip"
+              DEBUG: "true"
+
+    - step: &deploy-staging
+        name: Deploy with CodeDeploy staging
+        deployment: Staging
+        services:
+          - docker
+        script:
+          # Test upload
+          - pipe: atlassian/aws-code-deploy:0.2.10
+            variables:
+              APPLICATION_NAME: ${APPLICATION_NAME_STAGING}
+              AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+              AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+              AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+              COMMAND: "deploy"
+              DEBUG: "true"
+              DEPLOYMENT_GROUP: ${DEPLOYMENT_GROUP_STAGING}
+              FILE_EXISTS_BEHAVIOR: "OVERWRITE"
+              IGNORE_APPLICATION_STOP_FAILURES: "true"
+              WAIT: "true"
+
+pipelines:
+  # Pipelines that run automatically on every push
+  default:
+    - step: *environment
+    - parallel:
+        - step: *build-default
+        - step: *lint
+        # - step: *sonar
+
+  # Pipelines that run automatically on commits to specified branches
+  branches:
+    staging:
+      - step: *environment
+      - parallel:
+          - step: *build
+          - step: *lint
+          # - step: *sonar
+      - step: *s3-staging
+      - step: *deploy-staging
+    main:
+      - step: *environment
+      - parallel:
+          - step: *build
+          - step: *lint
+          - step: *sonar
