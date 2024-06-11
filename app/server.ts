@@ -220,9 +220,9 @@ app.get("/", (_req: Request, res: Response) => {
 
 const httpServer = http.createServer(app)
 
-httpServer.listen(config.server.port, () =>
+httpServer.listen(config.server.port, () => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
-)
+})
 
 // =====================================
 // function getTwoRandomNumber(number: number) {
