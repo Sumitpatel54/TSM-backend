@@ -8,6 +8,7 @@
     "build-container": "npx tsc",
     "serve": "nodemon app/server.ts",
     "serve-build": "nodemon build/app/server.js",
+    "vercel-build":"echo Hello",
     "debug": "nodemon --inspect app/server.ts",
     "pm2": "NODE_ENV=production pm2 start build/app/server.js --watch -i max",
     "pm2:staging": "NODE_ENV=staging pm2 start build/app/server.js --watch -i max",
