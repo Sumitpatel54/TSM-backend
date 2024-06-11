@@ -1,3 +1,5 @@
+/* eslint-disable semi */
+/* eslint-disable no-trailing-spaces */
 import http from "http"
 import path from "path"
 
@@ -33,10 +35,10 @@ import subCategoryRoutes from "./routes/sub-category.route"
 import testRoutes from "./routes/test.route"
 import userRoutes from "./routes/user.route"
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
-import userModel from "./models/user.model"
-import exerciseModel from "./models/exercise.model"
-import exerciseListModel from "./models/exerciseList.model"
-import programModel from "./models/program.model"
+// import userModel from "./models/user.model"
+// import exerciseModel from "./models/exercise.model"
+// import exerciseListModel from "./models/exerciseList.model"
+// import programModel from "./models/program.model"
 
 const NAMESPACE = "Scandinavian Server"
 const app = express()
@@ -223,152 +225,160 @@ httpServer.listen(config.server.port, () =>
 )
 
 // =====================================
-function getTwoRandomNumber(number: number) {
-    let number1 = Math.abs(Math.floor(Math.random() * number - 1))
-    let number2 = Math.abs(Math.floor(Math.random() * number - 1))
+// function getTwoRandomNumber(number: number) {
+//     let number1 = Math.abs(Math.floor(Math.random() * number - 1))
+//     let number2 = Math.abs(Math.floor(Math.random() * number - 1))
 
-    if (number1 === number2)
-        getTwoRandomNumber(number)
+//     if (number1 === number2)
+//         getTwoRandomNumber(number)
 
-    return { number1, number2 }
-}
-function getRandomNumber(number: number) {
-    return Math.abs(Math.floor(Math.random() * number - 1))
-}
-async function getExerciseList(userId: string) {
-    try {
-        let exerciseList = []
-        const questionnaireAnswers: any = await userModel.findOne({ _id: userId }, { questionnaireAnswers: 1 })
+//     return { number1, number2 }
+// }
+// function getRandomNumber(number: number) {
+//     return Math.abs(Math.floor(Math.random() * number - 1))
+// }
+// async function getExerciseList(userId: string) {
+    
+//     try {
+//         let exerciseList = []
+//         const questionnaireAnswers: any = await userModel.findOne({ _id: userId }, { questionnaireAnswers: 1 })
 
-        if (questionnaireAnswers === null)
-            return []
+//         if (questionnaireAnswers === null)
+//             return []
 
-        for (const key in questionnaireAnswers['questionnaireAnswers']) {
-            const exercise = questionnaireAnswers['questionnaireAnswers'][key]['questionnaire']['queryBlock'].filter((i: any) => {
-                if (i?.isExercise)
-                    return i
-            })
-            exerciseList.push(exercise)
-        }
+//         for (const key in questionnaireAnswers['questionnaireAnswers']) {
+//             const exercise = questionnaireAnswers['questionnaireAnswers'][key]['questionnaire']['queryBlock'].filter((i: any) => {
+//                 if (i?.isExercise)
+//                     return i
+//             })
+//             exerciseList.push(exercise)
+//         }
 
-        return exerciseList.flat(1)
+//         return exerciseList.flat(1)
 
-    } catch (error: any) {
-        console.log(error.message)
-    }
-}
+//     } catch (error: any) {
+//         console.log(error.message)
+//     }
+// }
 
 
-function exerciseSeederInTemplate(templates: any[], exercises: any[]) {
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    if (exercises.length === 0) {
-        return
-    }
+// function exerciseSeederInTemplate(templates: any[], exercises: any[]) {
+//     console.log("calling the exerciseSeederInTemplate =======")
+//     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+//     if (exercises.length === 0) {
+//         return
+//     }
 
-    if (exercises.length === 1) {
-        for (const i of templates) {
-            for (const j in i['days']) {
-                if (days.includes(j)) {
-                    i['days'][j].push(exercises[0])
-                }
-            }
-        }
+//     if (exercises.length === 1) {
+//         for (const i of templates) {
+//             for (const j in i['days']) {
+//                 if (days.includes(j)) {
+//                     i['days'][j].push(exercises[0])
+//                 }
+//             }
+//         }
 
-    } else {
-        for (const i of templates) {
-            for (const j in i['days']) {
-                if (days.includes(j)) {
-                    const randomNumbers = getTwoRandomNumber(exercises.length)
-                    i['days'][j].push(exercises[randomNumbers.number1])
-                    i['days'][j].push(exercises[randomNumbers.number2])
-                }
-            }
-        }
-    }
-}
+//     } else {
+//         for (const i of templates) {
+//             for (const j in i['days']) {
+//                 if (days.includes(j)) {
+//                     const randomNumbers = getTwoRandomNumber(exercises.length)
+//                     i['days'][j].push(exercises[randomNumbers.number1])
+//                     i['days'][j].push(exercises[randomNumbers.number2])
+//                 }
+//             }
+//         }
+//     }
+// }
 
-async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], { fhpID, rsID }: { fhpID: string, rsID: string }) {
-    try {
-        const isExerciseFound = {
-            fhp: false,
-            rs: false
-        }
+// async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], { fhpID, rsID }: { fhpID: string, rsID: string }) {
+//     try {
+//         console.log("fphOrRsExerciseGetAndSeed ==", fphOrRsExerciseGetAndSeed)
+//         const isExerciseFound = {
+//             fhp: false,
+//             rs: false
+//         }
 
-        for (const i of exerciseList) {
-            if (i.exerciseTag === "Forward head posture") {
-                isExerciseFound['fhp'] = true
+//         for (const i of exerciseList) {
+//             if (i.exerciseTag === "Forward head posture") {
+//                 isExerciseFound['fhp'] = true
 
-            } else if (i.exerciseTag === "Rounded shoulders") {
-                isExerciseFound['rs'] = true
+//             } else if (i.exerciseTag === "Rounded shoulders") {
+//                 isExerciseFound['rs'] = true
 
-            }
-        }
-        console.log(isExerciseFound)
+//             }
+//         }
+//         console.log(isExerciseFound)
 
-        if (!isExerciseFound.fhp && !isExerciseFound.rs)
-            return
+//         if (!isExerciseFound.fhp && !isExerciseFound.rs)
+//             return
 
-        if (isExerciseFound.fhp) {
-            const fhpExercises = await exerciseListModel.find({ tagId: fhpID })
-            exerciseSeederInTemplate(templates, fhpExercises)
-        }
+//         if (isExerciseFound.fhp) {
+//             const fhpExercises = await exerciseListModel.find({ tagId: fhpID })
+//             exerciseSeederInTemplate(templates, fhpExercises)
+//         }
 
-        if (isExerciseFound.rs) {
-            const rsExercises = await exerciseListModel.find({ tagId: rsID })
-            exerciseSeederInTemplate(templates, rsExercises)
-        }
+//         if (isExerciseFound.rs) {
+//             const rsExercises = await exerciseListModel.find({ tagId: rsID })
+//             exerciseSeederInTemplate(templates, rsExercises)
+//         }
 
-        return
+//         return
 
-    } catch (error: any) {
-        console.log(error.message)
-    }
-}
-async function programGeneration(userId: string) {
-    try {
-        const exerciseList: any = await getExerciseList(userId)
+//     } catch (error: any) {
+//         console.log(error.message)
+//     }
+// }
 
-        if (exerciseList.length === 0)
-            return "No exercise found"
+// async function programGeneration(userId: string) {
+//     try {
+//         console.log("programGeneration ============");
+        
+//         const exerciseList: any = await getExerciseList(userId)
+        
+//         console.log("programGeneration ============", exerciseList);
+//         if (exerciseList.length === 0)
+//             return "No exercise found"
 
-        let templates: any = []
-        const program: any = await programModel.findOne({ userId: userId }, { templates: 1 })
-        templates = program['templates']
-        const tags: any = await exerciseModel.findOne({ title: "Postural" }, { tags: 1, _id: 0 })
-        const fhpID = tags.tags.find((i: any) => i.title === "Forward head posture")._id.valueOf()
-        const rsID = tags.tags.find((i: any) => i.title === "Rounded shoulders")._id.valueOf()
+//         let templates: any = []
+//         const program: any = await programModel.findOne({ userId: userId }, { templates: 1 })
+//         templates = program['templates']
+//         const tags: any = await exerciseModel.findOne({ title: "Postural" }, { tags: 1, _id: 0 })
+//         const fhpID = tags.tags.find((i: any) => i.title === "Forward head posture")._id.valueOf()
+//         const rsID = tags.tags.find((i: any) => i.title === "Rounded shoulders")._id.valueOf()
 
-        await fphOrRsExerciseGetAndSeed(exerciseList, templates, { fhpID, rsID })
+//         await fphOrRsExerciseGetAndSeed(exerciseList, templates, { fhpID, rsID })
 
-        let otherExercises = []
-        const exercisesListWithOutFHPAndRs = await exerciseListModel.find({ tagId: { $nin: [fhpID, rsID] }, exerciseParentName: "Postural" })
+//         let otherExercises = []
+//         const exercisesListWithOutFHPAndRs = await exerciseListModel.find({ tagId: { $nin: [fhpID, rsID] }, exerciseParentName: "Postural" })
 
-        for (const exercise of exerciseList) {
-            if (exercise.exerciseTag !== "Forward head posture" && exercise.exerciseTag !== "Rounded shoulders") {
-                if (exercise?.exercise === "Postural") {
-                    if (exercise.exerciseType === "Random") {
-                        otherExercises.push(exercisesListWithOutFHPAndRs[getRandomNumber(exercisesListWithOutFHPAndRs.length)])
-                    } else {
-                        const manualSelectedExercise = await exerciseListModel.findOne({ _id: exercise.exerciseList[0] })
-                        if (manualSelectedExercise !== null) {
-                            otherExercises.push(manualSelectedExercise)
-                        }
-                    }
-                }
-            }
-        }
+//         for (const exercise of exerciseList) {
+//             if (exercise.exerciseTag !== "Forward head posture" && exercise.exerciseTag !== "Rounded shoulders") {
+//                 if (exercise?.exercise === "Postural") {
+//                     if (exercise.exerciseType === "Random") {
+//                         otherExercises.push(exercisesListWithOutFHPAndRs[getRandomNumber(exercisesListWithOutFHPAndRs.length)])
+//                     } else {
+//                         const manualSelectedExercise = await exerciseListModel.findOne({ _id: exercise.exerciseList[0] })
+//                         if (manualSelectedExercise !== null) {
+//                             otherExercises.push(manualSelectedExercise)
+//                         }
+//                     }
+//                 }
+//             }
+//         }
 
-        exerciseSeederInTemplate(templates, otherExercises)
+//         exerciseSeederInTemplate(templates, otherExercises)
 
-        await programModel.updateOne({ userId: userId }, { $set: { templates: templates } })
-        return "Program is created"
+//         await programModel.updateOne({ userId: userId }, { $set: { templates: templates } })
+//         return "Program is created"
 
-    }
-    catch (error: any) {
-        console.log(error.message)
-    }
-}
-// programGeneration("65313246e8899ad21c41f84b")
-//     .then(res => console.log(res))
-//     .catch(err => console.log(err))
+//     }
+//     catch (error: any) {
+//         console.log(error.message)
+//     }
+// }
+
+// programGeneration("65e8353de8899ad21c423422")
+//     .then(res => console.log("res ==", res))
+//     .catch(err => console.log('eerr ==', err))
 

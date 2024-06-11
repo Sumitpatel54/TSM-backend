@@ -1,3 +1,6 @@
+/* eslint-disable no-multi-spaces */
+/* eslint-disable no-trailing-spaces */
+/* eslint-disable semi */
 import { Request, Response } from "express"
 
 import ProgramService from "../services/program.service"
@@ -22,7 +25,7 @@ const apiUpdateProgram = async (req: Request, res: Response) => {
             throw new Error("User does not have any exercise program.")
         }
 
-        let template: any = program.templates.find((v:any) => (JSON.stringify(v._id) === JSON.stringify(templateId)))
+        let template: any = program.templates.find((v: any) => (JSON.stringify(v._id) === JSON.stringify(templateId)))
         console.log(template["days"][day])
         let arr = template["days"][day]
         if (!Array.isArray(arr) || arr.length === 0) {
@@ -52,78 +55,78 @@ const apiUpdateProgram = async (req: Request, res: Response) => {
     }
 }
 
-const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
-  let statusCode = 500
+// const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
+//   let statusCode = 500
 
-  try {
-      const userId: any = req.user?.id
+//   try {
+//       const userId: any = req.user?.id
 
-      // get user exercise program
-      let exerciseProgram:any = await ProgramService.retrieveProgram({ userId })
-      exerciseProgram = exerciseProgram?.toObject()
+//       // get user exercise program
+//       let exerciseProgram:any = await ProgramService.retrieveProgram({ userId })
+//       exerciseProgram = exerciseProgram?.toObject()
 
-      if (Array.isArray(exerciseProgram?.templates) && exerciseProgram.templates.length > 0) {
-        let templates = [ ...exerciseProgram.templates ]
+//       if (Array.isArray(exerciseProgram?.templates) && exerciseProgram.templates.length > 0) {
+//         let templates = [ ...exerciseProgram.templates ]
 
-        for (let i = 0; i < templates.length; i++) {
-          let obj = { ...templates[i] }
-          let weekCompleted = false
-          let Exercises = []
+//         for (let i = 0; i < templates.length; i++) {
+//           let obj = { ...templates[i] }
+//           let weekCompleted = false
+//           let Exercises = []
 
-          if (obj.days && Object.keys(obj.days).length > 0) {
-            for (let day__ of Object.keys(obj.days)) {
-              let day = day__
+//           if (obj.days && Object.keys(obj.days).length > 0) {
+//             for (let day__ of Object.keys(obj.days)) {
+//               let day = day__
 
-              if (Array.isArray(obj.days[day])) {
-                let dayCompleted = false
+//               if (Array.isArray(obj.days[day])) {
+//                 let dayCompleted = false
 
-                // loop through each array in day day and compute the day and week isCompleted
-                for (let k = 0; k < obj.days[day]; k++) {
-                  dayCompleted = !!obj.days[day][k]?.isComplete
-                  weekCompleted = !!obj.days[day][k]?.isComplete
-                }
+//                 // loop through each array in day day and compute the day and week isCompleted
+//                 for (let k = 0; k < obj.days[day]; k++) {
+//                   dayCompleted = !!obj.days[day][k]?.isComplete
+//                   weekCompleted = !!obj.days[day][k]?.isComplete
+//                 }
 
-                // create exercises object
-                let exObj = {
-                  "day": day,
-                  dayCompleted,
-                  exercise: obj.days[day].filter((item: any) => {
-                    if (req.path === "/general") {
-                      return (item.exerciseParentName === "General" || item.exerciseParentName === "general")
-                    }
-                    else if (req.path === "/postural") {
-                      return (item.exerciseParentName === "Postural" || item.exerciseParentName === "postural")
-                    }
-                    return true
-                  })
-                }
+//                 // create exercises object
+//                 let exObj = {
+//                   "day": day,
+//                   dayCompleted,
+//                   exercise: obj.days[day].filter((item: any) => {
+//                     if (req.path === "/general") {
+//                       return (item.exerciseParentName === "General" || item.exerciseParentName === "general")
+//                     }
+//                     else if (req.path === "/postural") {
+//                       return (item.exerciseParentName === "Postural" || item.exerciseParentName === "postural")
+//                     }
+//                     return true
+//                   })
+//                 }
 
-                Exercises.push(exObj)
-              }
-            }
-          }
+//                 Exercises.push(exObj)
+//               }
+//             }
+//           }
 
-          obj.weekCompleted = weekCompleted
-          obj.Exercises = Exercises
-          delete obj.days
-          templates[i] = obj
-        }
+//           obj.weekCompleted = weekCompleted
+//           obj.Exercises = Exercises
+//           delete obj.days
+//           templates[i] = obj
+//         }
 
-        exerciseProgram.templates = templates
-      }
+//         exerciseProgram.templates = templates
+//       }
 
-      return res.status(200).send({
-        status: true,
-        data: exerciseProgram,
-        message: "Successfully retreived."
-      })
-  } catch (error: any) {
-      return res.status(statusCode).send({
-          status: false,
-          message: error.message
-      })
-  }
-}
+//       return res.status(200).send({
+//         status: true,
+//         data: exerciseProgram,
+//         message: "Successfully retreived."
+//       })
+//   } catch (error: any) {
+//       return res.status(statusCode).send({
+//           status: false,
+//           message: error.message
+//       })
+//   }
+// }
 
 const apiGetUserNotCompletedExercisProgram = async (req: Request, res: Response) => {
     let statusCode = 500
@@ -138,7 +141,7 @@ const apiGetUserNotCompletedExercisProgram = async (req: Request, res: Response)
             exerciseProgram = exerciseProgram.toObject()
         }
 
-        let templates:any = exerciseProgram?.templates
+        let templates: any = exerciseProgram?.templates
 
         if (!Array.isArray(templates) || templates.length === 0) {
             statusCode = 400
@@ -146,12 +149,12 @@ const apiGetUserNotCompletedExercisProgram = async (req: Request, res: Response)
         }
 
         for (let i = 0; i < templates.length; i++) {
-            let obj:any = templates[i]
-            let days:any = Object.keys(obj.days)
+            let obj: any = templates[i]
+            let days: any = Object.keys(obj.days)
 
             for (let j of days) {
                 if (Array.isArray(obj.days[j]) && obj.days[j].length > 0) {
-                    obj.days[j] = obj.days[j].filter((v:any) => !v.isCompleted)
+                    obj.days[j] = obj.days[j].filter((v: any) => !v.isCompleted)
                 }
             }
 
@@ -171,9 +174,188 @@ const apiGetUserNotCompletedExercisProgram = async (req: Request, res: Response)
     }
 }
 
+const apiGetBothUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
+    let statusCode = 500;
+  
+    try {
+      const userId = req.user?.id;
+  
+      if (!userId) {
+        return res.status(400).send({
+          status: false,
+          message: 'User ID is required',
+        });
+      }
+  
+      // get user exercise program
+      const exerciseProgramDoc = await ProgramService.retrieveProgram({ userId });
+      const posturalProgramDoc = await ProgramService.retrievePosturalProgram({ userId });
+  
+      // Ensure programs are either null or plain objects
+      const exerciseProgram = exerciseProgramDoc ? exerciseProgramDoc.toObject() : null;
+      const posturalProgram = posturalProgramDoc ? posturalProgramDoc.toObject() : null;
+  
+      // Initialize arrays to store templates
+      const templateForGeneral: any[] = [];
+      const templateForPostural: any[] = [];
+  
+      const processTemplates = (program: any, templateArray: any[], parentName: string) => {
+        if (Array.isArray(program?.templates) && program.templates.length > 0) {
+          let templates = [...program.templates];
+  
+          for (let i = 0; i < templates.length; i++) {
+            let obj = { ...templates[i] };
+            let weekCompleted = true;
+            let Exercises = [];
+  
+            if (obj.days && Object.keys(obj.days).length > 0) {
+              for (let day__ of Object.keys(obj.days)) {
+                let day = day__;
+  
+                if (Array.isArray(obj.days[day])) {
+                  let dayCompleted = true;
+  
+                  // Loop through each array in day and compute the day and week isCompleted
+                  for (let k = 0; k < obj.days[day].length; k++) {
+                    dayCompleted = dayCompleted && !!obj.days[day][k]?.isComplete;
+                    weekCompleted = weekCompleted && !!obj.days[day][k]?.isComplete;
+                  }
+  
+                  // Create exercises object
+                  let exObj = {
+                    "day": day,
+                    dayCompleted,
+                    exercise: obj.days[day].filter((item: any) => {
+                      return item.exerciseParentName === parentName;
+                    })
+                  };
+  
+                  if (exObj.exercise.length > 0) {
+                    Exercises.push(exObj);
+                  }
+                }
+              }
+            }
+  
+            obj.weekCompleted = weekCompleted;
+            obj.Exercises = Exercises;
+            delete obj.days;
+            templates[i] = obj;
+          }
+  
+          templateArray.push(...templates);
+        }
+      };
+  
+      // Process general exercises if exerciseProgram is not null
+      if (exerciseProgram) {
+        processTemplates(exerciseProgram, templateForGeneral, "General");
+      }
+  
+      // Process postural exercises if posturalProgram is not null
+      if (posturalProgram) {
+        processTemplates(posturalProgram, templateForPostural, "Postural");
+      }
+  
+      return res.status(200).send({
+        status: true,
+        data: {
+          templateForGeneral,
+          templateForPostural,
+        },
+        message: "Successfully retrieved."
+      });
+    } catch (error: any) {
+      return res.status(statusCode).send({
+        status: false,
+        message: error.message
+      });
+    }
+  };
+
+
+const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
+    let statusCode = 500;
+
+    try {
+        const userId: any = req.user?.id;
+
+        // get user exercise program
+        let exerciseProgram: any = await ProgramService.retrieveProgram({ userId });
+        if (req.path === "/postural") {
+            exerciseProgram = await ProgramService.retrievePosturalProgram({ userId });
+        }
+        exerciseProgram = exerciseProgram?.toObject();
+
+        if (Array.isArray(exerciseProgram?.templates) && exerciseProgram.templates.length > 0) {
+            let templates = [...exerciseProgram.templates];
+
+            for (let i = 0; i < templates.length; i++) {
+                let obj = { ...templates[i] };
+                let weekCompleted = false;
+                let Exercises = [];
+
+                if (obj.days && Object.keys(obj.days).length > 0) {
+                    for (let day__ of Object.keys(obj.days)) {
+                        let day = day__;
+
+                        if (Array.isArray(obj.days[day])) {
+                            let dayCompleted = false;
+
+                            // loop through each array in day and compute the day and week isCompleted
+                            for (let k = 0; k < obj.days[day].length; k++) {
+                                dayCompleted = !!obj.days[day][k]?.isComplete;
+                                weekCompleted = weekCompleted && !!obj.days[day][k]?.isComplete;
+                            }
+
+                            // create exercises object
+                            let exObj = {
+                                "day": day,
+                                dayCompleted,
+                                exercise: obj.days[day].filter((item: any) => {
+                                    if (req.path === "/general") {
+                                        return item.exerciseParentName === "General" || item.exerciseParentName === "general";
+                                    }
+                                    else if (req.path === "/postural") {
+                                        return item.exerciseParentName === "Postural" || item.exerciseParentName === "postural";
+                                    }
+                                    return true;
+                                })
+                            };
+
+                            if (exObj.exercise.length > 0) {
+                                Exercises.push(exObj);
+                            }
+                        }
+                    }
+                }
+
+                obj.weekCompleted = weekCompleted;
+                obj.Exercises = Exercises;
+                delete obj.days;
+                templates[i] = obj;
+            }
+
+            exerciseProgram.templates = templates;
+        }
+
+        return res.status(200).send({
+            status: true,
+            data: exerciseProgram,
+            message: "Successfully retrieved."
+        });
+    } catch (error: any) {
+        return res.status(statusCode).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
+
+
 const apiChangeUserExerciseStatus = async (req: Request, res: Response) => {
     let statusCode = 500
-    let days:any
+    let days: any
 
     try {
         const userId: any = req.user?.id
@@ -182,11 +364,16 @@ const apiChangeUserExerciseStatus = async (req: Request, res: Response) => {
         const status = req.body.status
         const day = req.body.day?.toLowerCase()
         const exerciseId = req.body.exerciseId
+        const exerciseType = req.body.exerciseType
 
         commonUtilitie.validateRequestForEmptyValues({ day, userId })
 
         // get program
-        let exerciseProgram:any = await ProgramService.retrieveProgram({ _id: id, userId })
+        let exerciseProgram: any = await ProgramService.retrieveProgram({ _id: id, userId })
+
+        if (exerciseType === "postural") {
+            exerciseProgram = await ProgramService.retrievePosturalProgram({ userId });
+        }
 
         if (!exerciseProgram) {
             throw new Error("Exercise program does not exist.")
@@ -207,13 +394,21 @@ const apiChangeUserExerciseStatus = async (req: Request, res: Response) => {
         // update status locally
         for (let day_ of days[day]) {
             if (JSON.stringify(day_._id) === JSON.stringify(exerciseId)) {
-              day_.isComplete = status
+                day_.isComplete = status
             }
         }
 
         const query = { $set: { "templates.$.days": days } }
 
-        const updateResponse = await ProgramService.updateProgramWithSet({ _id: id, "templates._id": templateId }, query)
+        let updateResponse
+
+        if (exerciseType === "postural") {
+            updateResponse = await ProgramService.updatePosturalProgramWithSet({ _id: id, "templates._id": templateId }, query)
+        } else {
+            updateResponse = await ProgramService.updateProgramWithSet({ _id: id, "templates._id": templateId }, query)
+        }
+
+
         return res.status(200).send({
             status: true,
             data: updateResponse,
@@ -250,4 +445,4 @@ const apiGetReportBlock = async (req: Request, res: Response) => {
     }
 }
 
-export default { apiUpdateProgram, apiGetReportBlock, apiChangeUserExerciseStatus, apiGetUserNotCompletedExercisProgram, apiGetUserGeneralPosturalExerciseProgram }
+export default { apiUpdateProgram, apiGetReportBlock, apiChangeUserExerciseStatus, apiGetUserNotCompletedExercisProgram, apiGetUserGeneralPosturalExerciseProgram, apiGetBothUserGeneralPosturalExerciseProgram }

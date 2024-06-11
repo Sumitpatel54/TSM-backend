@@ -1,9 +1,12 @@
+/* eslint-disable semi */
+/* eslint-disable no-trailing-spaces */
 import { FilterQuery, UpdateQuery } from "mongoose"
 
 import { ProgramDocument } from "../interfaces/program.interface"
 import { UserDocument } from "../interfaces/user.interface"
 import Program from "../models/program.model"
 import User from "../models/user.model"
+import programForPosturalExerciseModel from "../models/programForPosturalExercise.model"
 
 /**
  * Used to update program details by userId
@@ -51,7 +54,7 @@ const updateProgramWithSet = async (programObj: any, payload: any) => {
 const retrieveProgram = async (query: FilterQuery<ProgramDocument>): Promise<ProgramDocument | null> => {
   try {
     const program: any = await Program.findOne(query).exec()
-    console.log(program)
+    // console.log(program)
     if (program) {
       return program
     }
@@ -61,6 +64,50 @@ const retrieveProgram = async (query: FilterQuery<ProgramDocument>): Promise<Pro
     throw new Error(`Sorry some errors occurred while retriving Questionnaire`)
   } catch (error: any) {
     throw new Error(error.message)
+  }
+}
+
+/**
+ * Used to find program by providing filter query
+ * @param query
+ * @returns ProgramDocument | null
+ */
+const retrievePosturalProgram = async (query: FilterQuery<ProgramDocument>): Promise<ProgramDocument | null> => {
+  try {
+    const program: any = await programForPosturalExerciseModel.findOne(query).exec()
+    // console.log("retrievePosturalProgram ==", program)
+    if (program) {
+      return program
+    }
+    else if (program === null) {
+      return null
+    }
+    throw new Error(`Sorry some errors occurred while retriving Questionnaire`)
+  } catch (error: any) {
+    throw new Error(error.message)
+  }
+}
+
+
+/**
+ * Used to update program details with $set param
+ *
+ * @param programObj
+ * @param payload
+ * @returns ExerciseDocument | null
+ */
+const updatePosturalProgramWithSet = async (programObj: any, payload: any) => {
+  try {
+    console.log("calling updatePosturalProgramWithSet");  
+    
+    const program: any = await programForPosturalExerciseModel.findOneAndUpdate(programObj, payload, { new: true })
+    console.log("program ==", program)
+    if (program) {
+      return program
+    }
+    throw new Error(`program details not found`)
+  } catch (error: any) {
+    throw new Error(error)
   }
 }
 
@@ -84,7 +131,7 @@ const retrieveReportBlock = async (query: FilterQuery<UserDocument>): Promise<an
       else {
         let array = Object.values(report)
 
-        let result = array.reduce((r:any, a:any) => {
+        let result = array.reduce((r: any, a: any) => {
           r[a.title] = r[a.title] || []
           r[a.title].push(a)
           return r
@@ -102,4 +149,4 @@ const retrieveReportBlock = async (query: FilterQuery<UserDocument>): Promise<an
   }
 }
 
-export default { retrieveProgram, updateProgram, retrieveReportBlock, updateProgramWithSet }
+export default { retrieveProgram, updateProgram, retrieveReportBlock, updateProgramWithSet, updatePosturalProgramWithSet, retrievePosturalProgram }

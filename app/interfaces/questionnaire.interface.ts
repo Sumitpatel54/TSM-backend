@@ -5,6 +5,7 @@ export interface QuestionnaireDocument extends mongoose.Document {
     sectionName: string
     questionType: string
     title: string
+    description: string
     options: Array<object>
     imageRequired: Array<object>
     queryBlock: Array<object>

@@ -6,7 +6,8 @@ import { requireUserToLogin } from "../middleware/routeAccess.middleware"
 const router = express.Router()
 
 // router.get("/", requireUserToLogin, ProgramContorller.apiGetUserExercisProgram)
-router.get(["/", "/general", "/postural"], requireUserToLogin, ProgramContorller.apiGetUserGeneralPosturalExerciseProgram)
+router.get([ "/general", "/postural"], requireUserToLogin, ProgramContorller.apiGetUserGeneralPosturalExerciseProgram)
+router.get(["/","/dayexerciselist"], requireUserToLogin, ProgramContorller.apiGetBothUserGeneralPosturalExerciseProgram)
 router.get("/pendingExercises", requireUserToLogin, ProgramContorller.apiGetUserNotCompletedExercisProgram)
 router.put("/:id/status/:templateId", requireUserToLogin, ProgramContorller.apiChangeUserExerciseStatus)
 router.put("/:templateId/exercise/:exerciseId", requireUserToLogin, ProgramContorller.apiUpdateProgram)

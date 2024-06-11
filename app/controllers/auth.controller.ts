@@ -152,8 +152,15 @@ const forgetPassword = async (req: Request, res: Response) => {
     let link = `https://staging.curemigraine.org/reset-password/${user.resetPasswordToken}`
     let html = `
     <p>Hi ${user.firstName},</p>
-    <p>Please click on the following <a href="${link}">link</a> to reset your password.</p> 
-    <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>`
+    <p>No stress! Remembering passwords can be pain in the neck - which for some is a trigger and for some it is a symptom of migraine. Let’s get you back on track so you can continue your journey to a migraine-free life.</p>
+    <p>Click the link below to reset your password:</p>
+    <a href="${link}">${link}</a>
+    <p>Remember, passwords are like toothbrushes – you should change them often and never share them with anyone else!</p>
+    <p>Cheers,
+    <br>
+    The Scandinavian Method Team
+    </p>
+    `
 
     await sendEmail({ to, from, subject, html })
 
@@ -282,9 +289,7 @@ const generateAccessTokenAndRefreshToken = async (user: UserDocument, req: Reque
 
   // Create Access Token
   const accessToken = createAccessToken({ user, issuer })
-  console.log("accessToken", accessToken)
   const newRefreshToken: any = await generateRefreshToken(user, req.ip)
-  console.log("newRefreshToken", newRefreshToken)
 
   return { accessToken, refreshToken: newRefreshToken.token }
 }

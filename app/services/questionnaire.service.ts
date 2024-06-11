@@ -1,9 +1,13 @@
+/* eslint-disable semi */
+/* eslint-disable no-trailing-spaces */
+/* eslint-disable eol-last */
 import { DocumentDefinition, FilterQuery, UpdateQuery } from "mongoose"
 
 import { QuestionnaireDocument } from "../interfaces/questionnaire.interface"
 // import Exercise from "../models/exercise.model"
 import ExerciseList from "../models/exerciseList.model"
 import Program from "../models/program.model"
+import ProgramForPosturalExercise from "../models/programForPosturalExercise.model"
 import Questionnaire from "../models/questionnaire.model"
 import User from "../models/user.model"
 
@@ -216,6 +220,18 @@ const getAllGeneralExercises = async (exerciseCount?: any) => {
   return [...exerciseList]
 }
 
+const getAllPosturalExercise = async (exerciseCount?: any) => {
+  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /Postural/, $options: 'i' } }).limit(exerciseCount)
+  for (let jr of exerciseList) {
+    if (jr && jr.toObject) {
+      jr = jr.toObject()
+      jr.isComplete = false
+    }
+  }
+  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
+  return [...exerciseList]
+}
+
 const generateTemplatesArray = (exerciseList: any) => {
   let templates = []
 
@@ -398,253 +414,47 @@ const generateProgramForUser = async (userId: any) => {
     let templates: any = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates
     templates = removeTemplateDuplicates(templates)
     await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-    // ==============
-    // let generalExerciseList = await getAllGeneralExercises()
-    // let templates = generateTemplatesArrayForFirstTime(generalExerciseList)
-    // templates = removeTemplateDuplicates(templates)
-    // await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-
-
-    // let problem: any = problems_[0]
-    // problem = problem.questionnaire
-    // let queryBlock = problem.queryBlock.find((v: any) => (v.selectedOption?.toLowerCase() !== "no"))
-
-    // if (queryBlock.exerciseType?.toLowerCase() === "manual" || Number(queryBlock.exerciseCount) === 0) {
-    //   if (!Array.isArray(queryBlock.exerciseList) || queryBlock.exerciseList.length === 0) {
-    //     throw new Error("Something went wrong.")
-    //   }
-
-    //   let exerciseList = queryBlock.exerciseList
-
-    //   for (let i = 0; i < exerciseList.length; i++) {
-    //     exerciseList[i] = await getExercise(exerciseList[i])
-    //   }
-
-    //   let exerciseList_ = [...exerciseList]
-
-    //   let templates = generateTemplatesArray(exerciseList_)?.templates
-    //   templates = removeTemplateDuplicates(templates)
-    //   await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-    // }
-    // else if (queryBlock.exerciseType?.toLowerCase() === "random" || Number(queryBlock.exerciseCount) > 0) {
-    //   const exerciseCount = Number(queryBlock.exerciseCount) || 1
-    //   let exerciseList_ = await getAllGeneralExercises(exerciseCount)
-    //   let templates = generateTemplatesArray(exerciseList_)?.templates
-    //   templates = removeTemplateDuplicates(templates)
-    //   await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-    // }
-    // else {
-    //   throw new Error("Failed to create an exercise program.")
-    // }
   }
-
-  // Exercises plan out of more than one problem
-  // else if (problems_.length >= 2) {
-  //   let days: Record<string, any> = {
-  //     monday: [],
-  //     tuesday: [],
-  //     wednesday: [],
-  //     thursday: [],
-  //     saturday: [],
-  //     sunday: [],
-  //   }
-
-  //   let templates: any = []
-
-  //   for (let problem__ of problems_) {
-  //     let problem: any = problem__
-  //     problem = problem.questionnaire
-  //     let queryBlock = problem.queryBlock.find((v: any) => (v.selectedOption?.toLowerCase() !== "no"))
-
-  //     if (!queryBlock?.exerciseType) {
-  //       continue
-  //     }
-
-  //     if (queryBlock.exerciseType?.toLowerCase() === "manual" || Number(queryBlock.exerciseCount) === 0) {
-  //       if (!Array.isArray(queryBlock.exerciseList) || queryBlock.exerciseList.length === 0) {
-  //         continue
-  //       }
-  //       let exerciseList: Array<Object> = queryBlock.exerciseList
-  //       for (let i = 0; i < exerciseList.length; i++) {
-  //         exerciseList[i] = await getExercise(exerciseList[i])
-  //       }
-  //       // cache list of exercises from problem 1
-  //       let exerciseList_ = [...exerciseList]
-  //       for (let i = 1; i <= 12; i++) {
-  //         if (exerciseList_.length > 1) {
-  //           let days_ = Object.keys(days)
-  //           for (let day__ of days_) {
-  //             let arr = days[day__]
-
-  //             if (problems_.length === 2) {
-  //               if (arr.length === 4) {
-  //                 continue
-  //               }
-
-  //               days[day__].push(exerciseList_[0])
-  //               if (!exerciseList_[1]) {
-  //                 days[day__].push(exerciseList[0])
-  //               }
-  //               else {
-  //                 days[day__].push(exerciseList_[1])
-  //               }
-  //             }
-  //             else {
-  //               if (arr.length === 5) {
-  //                 continue
-  //               }
-
-  //               days[day__].push(exerciseList_[0])
-  //               days[day__].push(exerciseList_[1])
-  //               days[day__].push(exerciseList_[2])
-  //               days[day__].push(exerciseList_[3])
-  //               if (!exerciseList_[4]) {
-  //                 days[day__].push(exerciseList[0])
-  //               }
-  //               else {
-  //                 days[day__].push(exerciseList_[4])
-  //               }
-  //             }
-
-  //             exerciseList_.shift()
-
-  //             if (exerciseList_.length > 0) {
-  //               exerciseList_.shift()
-  //             }
-  //             if (exerciseList_.length === 0) {
-  //               exerciseList_ = [...exerciseList]
-  //             }
-  //           }
-  //         }
-  //         else {
-  //           days.monday.push(...exerciseList)
-  //           days.tuesday.push(...exerciseList)
-  //           days.wednesday.push(...exerciseList)
-  //           days.thursday.push(...exerciseList)
-  //           days.saturday.push(...exerciseList)
-  //           days.sunday.push(...exerciseList)
-  //         }
-
-  //         if (templates.find((u: any) => (u.week === i))) {
-  //           for (let template__ of templates) {
-  //             if (template__.week === i) {
-  //               if (template__.days) {
-  //                 template__.days.monday.push(...days.monday)
-  //                 template__.days.tuesday.push(...days.tuesday)
-  //                 template__.days.wednesday.push(...days.wednesday)
-  //                 template__.days.thursday.push(...days.thursday)
-  //                 template__.days.saturday.push(...days.saturday)
-  //                 template__.days.sunday.push(...days.sunday)
-  //               }
-  //             }
-  //           }
-  //         }
-  //         else {
-  //           templates.push({ week: i, weekCompleted: false, days })
-  //         }
-
-  //         days = {
-  //           monday: [],
-  //           tuesday: [],
-  //           wednesday: [],
-  //           thursday: [],
-  //           // friday: [ ],
-  //           saturday: [],
-  //           sunday: [],
-  //         }
-  //       }
-  //     }
-  //     else if (queryBlock.exerciseType?.toLowerCase() === "random" || Number(queryBlock.exerciseCount) > 0) {
-  //       // const exerciseCount = Number(queryBlock.exerciseCount) || 1
-  //       // let exerciseList_ = await getAllGeneralExercises(exerciseCount)
-
-  //       // for (let i = 1; i <= 12; i++) {
-  //       //   if (exerciseList_.length > 1) {
-  //       //     let days_ = Object.keys(days)
-  //       //     for (let day__ of days_) {
-  //       //       let arr = days[day__]
-
-  //       //       if (problems_.length === 2) {
-  //       //         if (arr.length === 2) {
-  //       //           continue
-  //       //         }
-
-  //       //         days[day__].push(exerciseList_[0])
-  //       //         if (!exerciseList_[1]) {
-  //       //           days[day__].push(exerciseList_[0])
-  //       //         }
-  //       //         else {
-  //       //           days[day__].push(exerciseList_[1])
-  //       //         }
-  //       //       }
-  //       //       else {
-  //       //         if (arr.length === exerciseList_.length) {
-  //       //           continue
-  //       //         }
-
-  //       //         for (let n__ of exerciseList_) {
-  //       //           days[day__].push(n__)
-  //       //         }
-  //       //       }
-
-  //       //       exerciseList_.shift()
-
-  //       //       if (exerciseList_.length > 0) {
-  //       //         exerciseList_.shift()
-  //       //       }
-  //       //       if (exerciseList_.length === 0) {
-  //       //         exerciseList_ = [...exerciseList_]
-  //       //       }
-  //       //     }
-  //       //   }
-  //       //   else {
-  //       //     days.monday.push(...exerciseList_)
-  //       //     days.tuesday.push(...exerciseList_)
-  //       //     days.wednesday.push(...exerciseList_)
-  //       //     days.thursday.push(...exerciseList_)
-  //       //     days.saturday.push(...exerciseList_)
-  //       //     days.sunday.push(...exerciseList_)
-  //       //   }
-
-  //       //   if (templates.find((u: any) => (u.week === i))) {
-  //       //     for (let b__ of templates) {
-  //       //       if (b__.week === i) {
-  //       //         if (b__.days) {
-  //       //           b__.days.monday.push(...days.monday)
-  //       //           b__.days.tuesday.push(...days.tuesday)
-  //       //           b__.days.wednesday.push(...days.wednesday)
-  //       //           b__.days.thursday.push(...days.thursday)
-  //       //           b__.days.saturday.push(...days.saturday)
-  //       //           b__.days.sunday.push(...days.sunday)
-  //       //         }
-  //       //       }
-  //       //     }
-  //       //   }
-  //       //   else {
-  //       //     templates.push({ week: i, weekCompleted: false, days })
-  //       //   }
-
-  //       //   days = {
-  //       //     monday: [],
-  //       //     tuesday: [],
-  //       //     wednesday: [],
-  //       //     thursday: [],
-  //       //     // friday: [ ],
-  //       //     saturday: [],
-  //       //     sunday: [],
-  //       //   }
-  //       // }
-  //     }
-  //     else {
-  //       throw new Error("Failed to create an exercise program.")
-  //     }
-  //   }
-
-  //   templates = removeTemplateDuplicates(templates)
-
-  //   await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-  // }
 }
 
+/**
+ * @summary - Generate an exercise program for a user
+ * @param userId
+ */
+const generatePosturalProgramForUser = async (userId:any) => {
+  try {
+    let problems_ = [];
+    let answers_ = [];
 
-export default { createQuestionnaire, retrieveQuestionnaire, listQuestionnaires, updateQuestionnaire, deleteQuestionnaire, listAllQuestionnaires, retrieveQuestionnairesWithPaginate, retrieveQuestionnaireWithPaginateAggregate, generateProgramForUser, listAllQuestionnairesSortedByCreatedAt, retrieveNextQuestionnaire }
+    let user = await User.findById(userId);
+    if (!user) throw new Error("Cannot generate exercise program. User does not exist");
+
+    user = user.toObject();
+
+    // Cache user provided answers
+    let answers = user.questionnaireAnswers;
+    if (!answers || Object.keys(answers).length === 0) throw new Error("User has not provided any answers.");
+    answers_ = Object.values(answers);
+    problems_ = [...answers_];
+
+    // Exercises from phase 1 from 1 problem
+    if (problems_.length === 1) {
+      try {
+        let generalExerciseList = await getAllPosturalExercise();
+
+        let templates = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates;
+
+        templates = removeTemplateDuplicates(templates);
+        await ProgramForPosturalExercise.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true });
+      } catch (innerError) {
+        console.error("Error during program generation:", innerError);
+        throw innerError;
+      }
+    }
+  } catch (error) {
+    console.error("Error in generatePosturalProgramForUser:", error);
+  }
+};
+
+
+export default { createQuestionnaire, retrieveQuestionnaire, listQuestionnaires, updateQuestionnaire, deleteQuestionnaire, listAllQuestionnaires, retrieveQuestionnairesWithPaginate, retrieveQuestionnaireWithPaginateAggregate, generateProgramForUser, listAllQuestionnairesSortedByCreatedAt, retrieveNextQuestionnaire, generatePosturalProgramForUser }

@@ -29,6 +29,10 @@ const questionnaireSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        description: {
+            type: String,
+            required: false
+        },
         options: {
             type: Array,
             required: false

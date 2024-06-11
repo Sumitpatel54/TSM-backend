@@ -247,12 +247,17 @@ const apiUpdateQuestionnaire = async (req: Request, res: Response) => {
     let payload: any = req.body
     const questionnaireId: any = req.params.id
 
-    const file: any = req.files?.image
-
-    if (file) {
-      const image = await commonUtilitie.getUploadURL(file)
-      payload["imageUrl"] = image
+    const files: any[] = Object.values(req.files || {});
+    if (files.length > 0) {
+      const imageUrlsArray = await Promise.all(files.map(file => commonUtilitie.getUploadURLWithDir(file, constants.QUESTIONNAIRE_IMAGES)));
+      const imageUrls = imageUrlsArray.flat(); // Flatten the array
+      
+      payload.imageUrl = imageUrls; // Ensure this is properly set
     }
+    // if (file) {
+    //   const image = await commonUtilitie.getUploadURL(file)
+    //   payload["imageUrl"] = image
+    // }
 
     if (payload.queryBlock) {
       payload.queryBlock = JSON.parse(payload.queryBlock)
@@ -518,6 +523,7 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     // create program for user
     try {
       await QuestionnaireService.generateProgramForUser(userId)
+      await QuestionnaireService.generatePosturalProgramForUser(userId)
     } catch (e: any) {
       console.log(e)
     }
@@ -739,6 +745,7 @@ const apiGenerateTemplate = async (req: Request, res: Response) => {
   try {
     const userId: any = req.params?.id
     await QuestionnaireService.generateProgramForUser(userId)
+    await QuestionnaireService.generatePosturalProgramForUser(userId)
     return res.status(200).send(true)
   } catch (e: any) {
     return res.status(500).send({
