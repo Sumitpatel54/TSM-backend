@@ -219,8 +219,8 @@ app.get("/", (_req: Request, res: Response) => {
 //app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 
 const httpServer = http.createServer(app)
-
-httpServer.listen(config.server.port, () => {
+const port = 10000;
+httpServer.listen(port, () => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
 })
 
