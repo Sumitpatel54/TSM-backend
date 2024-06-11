@@ -1,6 +1,6 @@
 /* eslint-disable semi */
 /* eslint-disable no-trailing-spaces */
-import http from "http"
+// import http from "http"
 import path from "path"
 
 import bodyParser from "body-parser"
@@ -218,12 +218,15 @@ app.get("/", (_req: Request, res: Response) => {
 
 //app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 
-const httpServer = http.createServer(app)
+// const httpServer = http.createServer(app)
 const port = 10000;
-httpServer.listen(port, () => {
-    logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
-})
 
+app.listen(port, () => console.log("Server ready on port 3000."));
+// httpServer.listen(port, () => {
+//     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
+// })
+
+export default app
 // =====================================
 // function getTwoRandomNumber(number: number) {
 //     let number1 = Math.abs(Math.floor(Math.random() * number - 1))
