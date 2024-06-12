@@ -144,7 +144,7 @@ export const sendEmailWhenUserSignsUp = async (user: any, _req: any) => {
     <ol>
             <li>
                 <strong>Log in to Your Account:</strong> 
-                <a href="https://staging.curemigraine.org/login">Login Link</a>
+                <a href="https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login">Login Link</a>
             </li>
             <li>
                 <strong>Explore Your Dashboard:</strong> 
