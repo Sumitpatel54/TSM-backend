@@ -231,18 +231,29 @@ const getAllGeneralExercises = async (exerciseCount?: any) => {
   return exerciseList;
 };
 
-
 const getAllPosturalExercise = async (exerciseCount?: any) => {
-  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /Postural/, $options: 'i' } }).limit(exerciseCount)
-  for (let jr of exerciseList) {
-    if (jr && jr.toObject) {
-      jr = jr.toObject()
-      jr.isComplete = false
-    }
-  }
-  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
-  return [...exerciseList]
-}
+  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /Postural/, $options: 'i' } }).limit(exerciseCount);
+
+  // Parse the day strings to integers
+  exerciseList.forEach((exercise: { day: any[] }) => {
+    exercise.day = exercise.day.map(day => parseInt(day));
+  });
+
+  // Sort the exercises day-wise
+  exerciseList.sort((a: { day: any[] }, b: { day: any[] }) => {
+    const dayA = a.day[0];
+    const dayB = b.day[0];
+    return dayA - dayB;
+  });
+
+  // Add isComplete property
+  exerciseList.forEach((exercise: { isComplete: boolean }) => {
+    exercise.isComplete = false;
+  });
+
+  return exerciseList;
+};
+
 
 const generateTemplatesArray = (exerciseList: any) => {
   let templates = []
