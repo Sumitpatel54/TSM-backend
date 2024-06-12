@@ -67,7 +67,7 @@ export const sendEmailVerification = async (user: any, req: any) => {
     <p>Hi ${user.firstName},
     <p>Welcome to The Scandinavian Method! We’re excited to help you take the first step toward a migraine-free life.</p>
     <p>Before we can start, we need to make sure we have the correct email address. Please confirm your email by clicking the link below:</p>
-    <p> ${link} <a href="${link}">link</a>.</p>
+    <p> <a href="${link}">${link} </a>.</p>
     <p>By confirming your email, you’ll gain access to personalized resources, expert advice, and support that are essential for reducing the frequency and intensity of your migraines.</p>
     <p>This small step is crucial in ensuring you receive all the tools and information you need. Thank you for taking the time to do this—we’re here to support you every step of the way.</p>
     <p><b>Disclaimer: </b>Please note that our program offers general wellness advice and is not a substitute for professional medical care. We are not licensed healthcare providers outside Norway. Always consult with your healthcare provider before making any changes to your health regimen.</p>
