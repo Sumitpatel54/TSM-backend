@@ -149,7 +149,7 @@ const forgetPassword = async (req: Request, res: Response) => {
       email: process.env.SENDGRID_FROM_EMAIL,
       name: "Cure Migraine"
     }
-    let link = `https://staging.curemigraine.org/reset-password/${user.resetPasswordToken}`
+    let link = `https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/reset-password/${user.resetPasswordToken}`
     let html = `
     <p>Hi ${user.firstName},</p>
     <p>No stress! Remembering passwords can be pain in the neck - which for some is a trigger and for some it is a symptom of migraine. Let’s get you back on track so you can continue your journey to a migraine-free life.</p>
