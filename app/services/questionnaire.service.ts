@@ -209,16 +209,17 @@ const getExercise = async (id: any) => {
 }
 
 const getAllGeneralExercises = async (exerciseCount?: any) => {
-  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount)
+  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount).sort({ "day": 1 });
   for (let jr of exerciseList) {
     if (jr && jr.toObject) {
-      jr = jr.toObject()
-      jr.isComplete = false
+      jr = jr.toObject();
+      jr.isComplete = false;
     }
   }
-  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
-  return [...exerciseList]
-}
+  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }));
+  return [...exerciseList];
+};
+
 
 const getAllPosturalExercise = async (exerciseCount?: any) => {
   let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /Postural/, $options: 'i' } }).limit(exerciseCount)
