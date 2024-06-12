@@ -389,11 +389,11 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
       }
 
       // res.status(200).send(`The account has been verified, please Log In`)
-      res.status(301).redirect(`https://staging.curemigraine.org/login`)
+      res.status(301).redirect(`https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login`)
     })
   } catch (error: any) {
     // res.status(statusCode).json({ status: false, message: error.message })
-    res.status(301).redirect(`https://staging.curemigraine.org/login`)
+    res.status(301).redirect(`https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login`)
   }
 }
 
