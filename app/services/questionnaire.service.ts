@@ -209,53 +209,57 @@ const getExercise = async (id: any) => {
 }
 
 const getAllGeneralExercises = async (exerciseCount?: any) => {
-  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount);
+  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount)
+  for (let jr of exerciseList) {
+    if (jr && jr.toObject) {
+      jr = jr.toObject()
+      jr.isComplete = false
+    }
+  }
+  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
+  return [...exerciseList]
+}
 
-  // Parse the day strings to integers
-  exerciseList.forEach((exercise: any) => {
-    exercise.day = exercise.day.map((day: any) => parseInt(day));
-  });
-
-  // Sort the exercises day-wise
-  exerciseList.sort((a: any, b: any) => {
-    const dayA = a.day[0];
-    const dayB = b.day[0];
-    return dayA - dayB;
-  });
-
-  // Add isComplete property
-  exerciseList.forEach((exercise: any) => {
-    exercise.isComplete = false;
-  });
-
-  console.log("getAllGeneralExercises ===", exerciseList);
-  return exerciseList;
-};
 
 const getAllPosturalExercise = async (exerciseCount?: any) => {
-  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /Postural/, $options: 'i' } }).limit(exerciseCount);
-
-  // Parse the day strings to integers
-  exerciseList.forEach((exercise: any) => {
-    exercise.day = exercise.day.map((day: any) => parseInt(day));
-  });
-
-  // Sort the exercises day-wise
-  exerciseList.sort((a:any, b:any) => {
-    const dayA = a.day[0];
-    const dayB = b.day[0];
-    return dayA - dayB;
-  });
-
-  // Add isComplete property
-  exerciseList.forEach((exercise: any) => {
-    exercise.isComplete = false;
-  });
-
-  console.log("getAllPosturalExercise ===", exerciseList);
+  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /Postural/, $options: 'i' } }).limit(exerciseCount)
+  // console.log(" getAllPosturalExercise ==", exerciseList);
   
-  return exerciseList;
-};
+  for (let jr of exerciseList) {
+    if (jr && jr.toObject) {
+      jr = jr.toObject()
+      jr.isComplete = false
+    }
+  }
+  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
+  return [...exerciseList]
+}
+
+
+// const getAllGeneralExercises = async (exerciseCount?: any) => {
+//   let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount);
+
+//   // Parse the day strings to integers
+//   exerciseList.forEach((exercise: any) => {
+//     exercise.day = exercise.day.map((day: any) => parseInt(day));
+//   });
+
+//   // Sort the exercises day-wise
+//   exerciseList.sort((a: any, b: any) => {
+//     const dayA = a.day[0];
+//     const dayB = b.day[0];
+//     return dayA - dayB;
+//   });
+
+//   // Add isComplete property
+//   exerciseList.forEach((exercise: any) => {
+//     exercise.isComplete = false;
+//   });
+
+//   console.log("getAllGeneralExercises ===", exerciseList);
+//   return exerciseList;
+// };
+
 
 
 const generateTemplatesArray = (exerciseList: any) => {
@@ -334,7 +338,11 @@ const generateTemplatesArray = (exerciseList: any) => {
 }
 
 const removeTemplateDuplicates = (templates_: any) => {
+  console.log("removeTemplateDuplicates=", templates_);
+  
   let templates = [...templates_]
+  console.log('templates ==', templates);
+  
 
   for (let q of templates) {
     let days = { ...q.days }
@@ -348,10 +356,16 @@ const removeTemplateDuplicates = (templates_: any) => {
     q.days = { ...days }
   }
 
+  console.log('end ====', templates);
+  
   return templates
 }
 const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
+  // console.log("exerciseList ========", exerciseList);
+  
   try {
+    // console.log("try ========================================");
+    
     let templates = []
 
     let days: Record<string, any> = {
@@ -365,16 +379,24 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
     }
 
     for (let i = 1; i <= 13; i++) {
+      // console.log("for ============================");
+      
       let days_ = Object.keys(days)
+      // console.log("seee days", days_);
+      
       for (let day__ of days_) {
+        // console.log("day__ ==", day__);
+        
         let arr = days[day__]
         if (arr.length === 1) {
+          // console.log("continiuee =============");
           continue
         }
 
         days[day__].push(exerciseList[0])
 
         if (!exerciseList[1]) {
+          // console.log("continiuee 1111 =============");
           days[day__].push(exerciseList[0])
         }
         // else {
@@ -390,11 +412,41 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
           exerciseList = [...exerciseList]
         }
       }
-      // remove duplicates
-      for (let v of Object.keys(days)) {
-        days[v] = days[v].filter((t: any, i: any, a: any) => a.findIndex((v2: any) => (JSON.stringify(v2._id) === JSON.stringify(t._id))) === i)
-      }
 
+      for (let v of Object.keys(days)) {
+        days[v] = days[v].filter((t: any, i: any, a: any) => {
+          if (!t || !t._id) {
+            console.log(`Missing _id in element at i index ${i}:`, t);
+            return false; // Filter out elements without _id
+          }
+      
+          const firstIndex = a.findIndex((v2: any) => {
+            if (!v2 || !v2._id) {
+              // console.log(`Missing _id in compared v2 element:`, v2);
+              return false; // Ignore elements without _id during comparison
+            }
+      
+            // console.log("v2._id =", JSON.stringify(v2._id));
+            // console.log("t._id =", JSON.stringify(t._id));
+            return JSON.stringify(v2._id) === JSON.stringify(t._id);
+          });
+      
+          // console.log("i =", i, "firstIndex =", firstIndex);
+          return firstIndex === i;
+        });
+      }
+      
+      // remove duplicates
+      // for (let v of Object.keys(days)) {
+      //   days[v] = days[v].filter((t: any, i: any, a: any) => a.findIndex((v2: any) => { console.log("v2 ==", JSON.stringify(v2._id))
+      //     console.log("JSON.stringify(t._id) ==", JSON.stringify(t._id))
+      //     console.log("i===", i);
+          
+      //    }))
+      // days[v] = days[v].filter((t: any, i: any, a: any) => a.findIndex((v2: any) => (JSON.stringify(v2._id) === JSON.stringify(t._id))) === i)
+         
+      //    }
+         
       templates.push({ week: i, weekCompleted: false, days })
 
       days = {
@@ -408,21 +460,58 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
       }
     }
 
+    // console.log("days ===", templates);
+    
     return { templates }
   } catch (error: any) {
     console.log(error.message)
   }
 
 }
-/**
- * @summary - Generate an exercise program for a user
- * @param userId
- */
+// /**
+//  * @summary - Generate an exercise program for a user
+//  * @param userId
+//  */
+// const generateProgramForUser = async (userId: any) => {
+
+//   let problems_ = []
+//   let answers_ = []
+
+//   console.log("userId for generation  ==", userId);
+  
+//   let user = await User.findById(userId)
+//   if (!user) throw new Error("Cannot generate exercise program. User does not exist")
+
+//   user = user.toObject()
+
+//   // cache user provided answers
+//   let answers: any = user.questionnaireAnswers
+//   if (!answers || Object.keys(answers).length === 0) throw new Error("User has not provided any answers.")
+//   answers_ = Object.values(answers)
+//   problems_ = [...answers_]
+
+//   // Exercises from phase 1 from 1 problem
+//   console.log("outside =-========");
+  
+//   // if (problems_.length === 1) {
+//     console.log(" if ========");
+//     let generalExerciseList = await getAllGeneralExercises()
+//     // console.log("First 3 exercises ==", generalExerciseList.slice(0, 3));
+//     let templates: any = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates
+//     // let templates: any = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates
+//     console.log("templates ==", templates);
+//     templates = removeTemplateDuplicates(templates)
+//     await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
+//   // }
+// }
+
 const generateProgramForUser = async (userId: any) => {
 
   let problems_ = []
   let answers_ = []
 
+  console.log("user id=", userId);
+  
   let user = await User.findById(userId)
   if (!user) throw new Error("Cannot generate exercise program. User does not exist")
 
@@ -434,13 +523,20 @@ const generateProgramForUser = async (userId: any) => {
   answers_ = Object.values(answers)
   problems_ = [...answers_]
 
+  // console.log("problems_ ===", problems_.length);
+  
   // Exercises from phase 1 from 1 problem
-  if (problems_.length === 1) {
+  // if (problems_.length === 1) {}
     let generalExerciseList = await getAllGeneralExercises()
+    // console.log("First 3 exercises ==", generalExerciseList.slice(0, 2));
+
+    
     let templates: any = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates
+    // // console.log("generateTemplatesArrayForFirstTime ===", templates);
     templates = removeTemplateDuplicates(templates)
+    // console.log("templates ===", templates);
+    
     await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-  }
 }
 
 /**
@@ -464,7 +560,7 @@ const generatePosturalProgramForUser = async (userId:any) => {
     problems_ = [...answers_];
 
     // Exercises from phase 1 from 1 problem
-    if (problems_.length === 1) {
+    // if (problems_.length === 1) {
       try {
         let generalExerciseList = await getAllPosturalExercise();
 
@@ -476,7 +572,7 @@ const generatePosturalProgramForUser = async (userId:any) => {
         console.error("Error during program generation:", innerError);
         throw innerError;
       }
-    }
+    // }
   } catch (error) {
     console.error("Error in generatePosturalProgramForUser:", error);
   }
