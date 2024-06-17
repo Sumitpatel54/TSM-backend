@@ -1,5 +1,6 @@
+/* eslint-disable no-trailing-spaces */
+/* eslint-disable semi */
 import { Request, Response } from "express"
-
 import UserService from "../services/user.service"
 import questionnaireService from "../services/questionnaire.service"
 
@@ -69,7 +70,14 @@ const apiGetUser = async (req: Request, res: Response) => {
         const userId: any = req.params.id
         // get user
         const user: any = await UserService.findUser({ _id: userId })
-        await updateUserBMIData(user)
+        
+         // Update user BMI data if available
+         try {
+            await updateUserBMIData(user);
+        } catch (error: any) {
+            console.warn("Failed to update user BMI data:", error.message);
+            // Continue without BMI data
+        }
 
         return res.status(200).send({
             status: true,
