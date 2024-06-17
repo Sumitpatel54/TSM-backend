@@ -1,3 +1,5 @@
+/* eslint-disable no-multi-spaces */
+/* eslint-disable no-empty */
 /* eslint-disable semi */
 /* eslint-disable no-trailing-spaces */
 import { Request, Response } from "express"
@@ -443,6 +445,24 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
 //   }
 // }
 
+// const testPrograms = async () => {
+//   try {
+//     console.log("=-===================");
+    
+//     // const userId: any = req.user?.id
+//     const userId: any = "666abef983bddf5ef8670702"
+//     const program =  await QuestionnaireService.generateProgramForUser(userId)
+//     const PosturalProgram = await QuestionnaireService.generatePosturalProgramForUser(userId)
+//     console.log("program =", program);
+//     console.log("PosturalProgram =", PosturalProgram);
+    
+//   } catch (error) {
+//     console.log("error ========", error);
+//   }
+// }
+
+
+
 /**
  * @summary - Submit's a user's answer to a question in a questionnaire
  * @param req
@@ -459,6 +479,8 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
   try {
     const questionnaireId: any = req.params.questionId
     const userId: any = req.user?.id
+
+    
     const answer: any = req.body.answer?.trim()
     const file: any = req.files?.image
 
@@ -515,6 +537,8 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     answerObj["answer"] = answer || ""
     answerObj["image"] = image || ""
 
+    // console.log("retrieveQuestionnaireResponse ==", retrieveQuestionnaireResponse);
+    
     // add provided answer to user
     await UserService.updateUser(userId, {
       $set: { [`questionnaireAnswers.${questionnaireId}`]: answerObj },
@@ -523,9 +547,16 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     // create program for user
     try {
       await QuestionnaireService.generateProgramForUser(userId)
-      await QuestionnaireService.generatePosturalProgramForUser(userId)
+      // await QuestionnaireService.generatePosturalProgramForUser(userId)
     } catch (e: any) {
       console.log(e)
+    }
+
+    try {
+      await QuestionnaireService.programGeneration(userId)
+      
+    } catch (e: any) {
+      console.log("error =======", e)
     }
 
     if (obj && obj.nextQuestion) {
@@ -745,7 +776,7 @@ const apiGenerateTemplate = async (req: Request, res: Response) => {
   try {
     const userId: any = req.params?.id
     await QuestionnaireService.generateProgramForUser(userId)
-    await QuestionnaireService.generatePosturalProgramForUser(userId)
+    // await QuestionnaireService.generatePosturalProgramForUser(userId)
     return res.status(200).send(true)
   } catch (e: any) {
     return res.status(500).send({

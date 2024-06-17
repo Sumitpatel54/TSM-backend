@@ -209,7 +209,7 @@ const updateExerciseWithSet = async (exerciseObj: any, payload: any): Promise<Ex
 const retrieveExercisesWithPaginate = async (query: FilterQuery<ExerciseDocument>, options: any): Promise<ExerciseDocument | null> => {
     try {
         const exercises: any = await Exercise.paginate(query, options)
-        console.log(exercises)
+        // console.log(exercises)
         if (exercises) {
             return exercises
         }
@@ -222,7 +222,7 @@ const retrieveExercisesWithPaginate = async (query: FilterQuery<ExerciseDocument
 const retrieveExerciseListWithPaginate = async (query: FilterQuery<ExerciseListDocument>, options: any): Promise<ExerciseListDocument | null> => {
     try {
         const exercises: any = await ExerciseList.paginate(query, options)
-        console.log(exercises)
+        // console.log(exercises)
         if (exercises) {
             return exercises
         }

@@ -282,9 +282,9 @@ const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Respo
 
         // get user exercise program
         let exerciseProgram: any = await ProgramService.retrieveProgram({ userId });
-        if (req.path === "/postural") {
-            exerciseProgram = await ProgramService.retrievePosturalProgram({ userId });
-        }
+        // if (req.path === "/postural") {
+        //     exerciseProgram = await ProgramService.retrievePosturalProgram({ userId });
+        // }
         exerciseProgram = exerciseProgram?.toObject();
 
         if (Array.isArray(exerciseProgram?.templates) && exerciseProgram.templates.length > 0) {
