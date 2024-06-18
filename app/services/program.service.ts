@@ -101,7 +101,6 @@ const updatePosturalProgramWithSet = async (programObj: any, payload: any) => {
     console.log("calling updatePosturalProgramWithSet");  
     
     const program: any = await programForPosturalExerciseModel.findOneAndUpdate(programObj, payload, { new: true })
-    console.log("program ==", program)
     if (program) {
       return program
     }

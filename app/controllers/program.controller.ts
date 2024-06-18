@@ -176,97 +176,99 @@ const apiGetUserNotCompletedExercisProgram = async (req: Request, res: Response)
 
 const apiGetBothUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
     let statusCode = 500;
-  
+
     try {
-      const userId = req.user?.id;
-  
-      if (!userId) {
-        return res.status(400).send({
-          status: false,
-          message: 'User ID is required',
-        });
-      }
-  
-      // get user exercise program
-      const exerciseProgramDoc = await ProgramService.retrieveProgram({ userId });
-  
-      // Ensure programs are either null or plain objects
-      const exerciseProgram = exerciseProgramDoc ? exerciseProgramDoc.toObject() : null;
-  
-      // Initialize arrays to store templates
-      const templateForGeneral: any[] = [];
-      const templateForPostural: any[] = [];
-  
-      const processTemplates = (program: any, templateArray: any[], parentName: string) => {
-        if (Array.isArray(program?.templates) && program.templates.length > 0) {
-          let templates = [...program.templates];
-  
-          for (let i = 0; i < templates.length; i++) {
-            let obj = { ...templates[i] };
-            let weekCompleted = true;
-            let Exercises = [];
-  
-            if (obj.days && Object.keys(obj.days).length > 0) {
-              for (let day__ of Object.keys(obj.days)) {
-                let day = day__;
-  
-                if (Array.isArray(obj.days[day])) {
-                  let dayCompleted = true;
-  
-                  // Loop through each array in day and compute the day and week isCompleted
-                  for (let k = 0; k < obj.days[day].length; k++) {
-                    dayCompleted = dayCompleted && !!obj.days[day][k]?.isComplete;
-                    weekCompleted = weekCompleted && !!obj.days[day][k]?.isComplete;
-                  }
-  
-                  // Create exercises object
-                  let exObj = {
-                    "day": day,
-                    dayCompleted,
-                    exercise: obj.days[day].filter((item: any) => {
-                      return item.exerciseParentName === parentName;
-                    })
-                  };
-  
-                  if (exObj.exercise.length > 0) {
-                    Exercises.push(exObj);
-                  }
-                }
-              }
-            }
-  
-            obj.weekCompleted = weekCompleted;
-            obj.Exercises = Exercises;
-            delete obj.days;
-            templates[i] = obj;
-          }
-  
-          templateArray.push(...templates);
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return res.status(400).send({
+                status: false,
+                message: 'User ID is required',
+            });
         }
-      };
-  
-      // Process general exercises and postural exercises
-      if (exerciseProgram) {
-        processTemplates(exerciseProgram, templateForGeneral, "General");
-        processTemplates(exerciseProgram, templateForPostural, "Postural");
-      }
-  
-      return res.status(200).send({
-        status: true,
-        data: {
-          templateForGeneral,
-          templateForPostural,
-        },
-        message: "Successfully retrieved."
-      });
+
+        // Get user exercise program
+        const exerciseProgramDoc = await ProgramService.retrieveProgram({ userId });
+
+        // Ensure programs are either null or plain objects
+        const exerciseProgram = exerciseProgramDoc ? exerciseProgramDoc.toObject() : null;
+
+        // Initialize arrays to store templates
+        const templateForGeneral: any[] = [];
+        const templateForPostural: any[] = [];
+
+        const processTemplates = (program: any, templateArray: any[], parentName: string) => {
+            if (Array.isArray(program?.templates) && program.templates.length > 0) {
+                let templates = [...program.templates];
+
+                for (let i = 0; i < templates.length; i++) {
+                    let obj = { ...templates[i] };
+                    let weekCompleted = false;
+                    let Exercises = [];
+
+                    if (obj.days && Object.keys(obj.days).length > 0) {
+                        for (let day__ of Object.keys(obj.days)) {
+                            let day = day__;
+
+                            if (Array.isArray(obj.days[day])) {
+                                let dayCompleted = false;
+
+                                // Loop through each array in day and compute the day and week isCompleted
+                                for (let k = 0; k < obj.days[day].length; k++) {
+                                    dayCompleted = dayCompleted && !!obj.days[day][k]?.isComplete;
+                                    weekCompleted = weekCompleted && !!obj.days[day][k]?.isComplete;
+                                }
+
+                                // Create exercises object
+                                let exObj = {
+                                    "day": day,
+                                    dayCompleted,
+                                    exercise: obj.days[day].filter((item: any) => {
+                                        return item.exerciseParentName === parentName;
+                                    })
+                                };
+
+                                if (exObj.exercise.length > 0) {
+                                    Exercises.push(exObj);
+                                }
+                            }
+                        }
+                    }
+
+                    obj.weekCompleted = weekCompleted;
+                    obj.Exercises = Exercises;
+                    delete obj.days;
+                    templates[i] = obj;
+                }
+
+                templateArray.push(...templates);
+            }
+        };
+
+        // Process general exercises and postural exercises
+        if (exerciseProgram) {
+            processTemplates(exerciseProgram, templateForGeneral, "General");
+            processTemplates(exerciseProgram, templateForPostural, "Postural");
+        }
+
+        return res.status(200).send({
+            status: true,
+            data: {
+                _id: exerciseProgramDoc?._id,  // Add the _id field to the response
+                templateForGeneral,
+                templateForPostural,
+            },
+            message: "Successfully retrieved."
+        });
     } catch (error: any) {
-      return res.status(statusCode).send({
-        status: false,
-        message: error.message
-      });
+        console.error('Error retrieving exercise program:', error);
+        return res.status(statusCode).send({
+            status: false,
+            message: error.message
+        });
     }
-  };
-  
+};
+
 
 
 const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
@@ -277,9 +279,6 @@ const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Respo
 
         // get user exercise program
         let exerciseProgram: any = await ProgramService.retrieveProgram({ userId });
-        // if (req.path === "/postural") {
-        //     exerciseProgram = await ProgramService.retrievePosturalProgram({ userId });
-        // }
         exerciseProgram = exerciseProgram?.toObject();
 
         if (Array.isArray(exerciseProgram?.templates) && exerciseProgram.templates.length > 0) {
@@ -359,16 +358,11 @@ const apiChangeUserExerciseStatus = async (req: Request, res: Response) => {
         const status = req.body.status
         const day = req.body.day?.toLowerCase()
         const exerciseId = req.body.exerciseId
-        const exerciseType = req.body.exerciseType
 
         commonUtilitie.validateRequestForEmptyValues({ day, userId })
 
         // get program
         let exerciseProgram: any = await ProgramService.retrieveProgram({ _id: id, userId })
-
-        if (exerciseType === "postural") {
-            exerciseProgram = await ProgramService.retrievePosturalProgram({ userId });
-        }
 
         if (!exerciseProgram) {
             throw new Error("Exercise program does not exist.")
@@ -395,15 +389,7 @@ const apiChangeUserExerciseStatus = async (req: Request, res: Response) => {
 
         const query = { $set: { "templates.$.days": days } }
 
-        let updateResponse
-
-        if (exerciseType === "postural") {
-            updateResponse = await ProgramService.updatePosturalProgramWithSet({ _id: id, "templates._id": templateId }, query)
-        } else {
-            updateResponse = await ProgramService.updateProgramWithSet({ _id: id, "templates._id": templateId }, query)
-        }
-
-
+        const updateResponse = await ProgramService.updateProgramWithSet({ _id: id, "templates._id": templateId }, query)
         return res.status(200).send({
             status: true,
             data: updateResponse,
@@ -425,7 +411,6 @@ const apiGetReportBlock = async (req: Request, res: Response) => {
 
         // get user report
         const report = await ProgramService.retrieveReportBlock({ _id: userId })
-        console.log("report", report)
 
         return res.status(200).send({
             status: true,
