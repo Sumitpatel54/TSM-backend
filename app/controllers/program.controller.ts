@@ -189,11 +189,9 @@ const apiGetBothUserGeneralPosturalExerciseProgram = async (req: Request, res: R
   
       // get user exercise program
       const exerciseProgramDoc = await ProgramService.retrieveProgram({ userId });
-      const posturalProgramDoc = await ProgramService.retrievePosturalProgram({ userId });
   
       // Ensure programs are either null or plain objects
       const exerciseProgram = exerciseProgramDoc ? exerciseProgramDoc.toObject() : null;
-      const posturalProgram = posturalProgramDoc ? posturalProgramDoc.toObject() : null;
   
       // Initialize arrays to store templates
       const templateForGeneral: any[] = [];
@@ -247,14 +245,10 @@ const apiGetBothUserGeneralPosturalExerciseProgram = async (req: Request, res: R
         }
       };
   
-      // Process general exercises if exerciseProgram is not null
+      // Process general exercises and postural exercises
       if (exerciseProgram) {
         processTemplates(exerciseProgram, templateForGeneral, "General");
-      }
-  
-      // Process postural exercises if posturalProgram is not null
-      if (posturalProgram) {
-        processTemplates(posturalProgram, templateForPostural, "Postural");
+        processTemplates(exerciseProgram, templateForPostural, "Postural");
       }
   
       return res.status(200).send({
@@ -272,6 +266,7 @@ const apiGetBothUserGeneralPosturalExerciseProgram = async (req: Request, res: R
       });
     }
   };
+  
 
 
 const apiGetUserGeneralPosturalExerciseProgram = async (req: Request, res: Response) => {
