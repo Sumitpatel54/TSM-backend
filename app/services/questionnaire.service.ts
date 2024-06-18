@@ -610,6 +610,8 @@ async function getExerciseList(userId: string) {
       exerciseList.push(exercise)
     }
 
+    return exerciseList.flat(1)
+
   } catch (error: any) {
     console.log(error.message)
   }
