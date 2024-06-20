@@ -1,3 +1,6 @@
+/* eslint-disable no-empty */
+/* eslint-disable no-trailing-spaces */
+/* eslint-disable semi */
 import { NextFunction, Request, Response } from "express"
 import Stripe from "stripe"
 import HttpException from "../exceptions/HttpException"
@@ -5,6 +8,7 @@ import HttpStatusCode from "http-status-codes"
 import StripeService from "../services/stripe.service"
 import UserService from "../services/user.service"
 import CommonFunctions from "../utilities/common"
+import User from "../models/user.model"
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
   apiVersion: '2022-08-01',
@@ -18,7 +22,6 @@ const getAllProductsAndPlans = async (req: Request, res: Response) => {
     ]
   ).then(async (stripeData) => {
     let products = stripeData[0].data
-    console.log(products)
     let plans = stripeData[1].data
 
     plans = plans.sort((a: any, b: any) => {
@@ -302,6 +305,13 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
         currency
       }
       intent = await stripe.paymentIntents.create(paymentIntentData)
+    }
+
+    // this block is added for staging purpose 
+    try {
+      await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
+    } catch (error) {
+      
     }
 
     if (intent) {
