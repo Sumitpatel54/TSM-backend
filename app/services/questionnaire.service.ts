@@ -210,17 +210,17 @@ const getExercise = async (id: any) => {
   return result ? { ...result, isComplete: false } : null
 }
 
-const getAllGeneralExercises = async (exerciseCount?: any) => {
-  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount)
-  for (let jr of exerciseList) {
-    if (jr && jr.toObject) {
-      jr = jr.toObject()
-      jr.isComplete = false
-    }
-  }
-  exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
-  return [...exerciseList]
-}
+// const getAllGeneralExercises = async (exerciseCount?: any) => {
+//   let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount)
+//   for (let jr of exerciseList) {
+//     if (jr && jr.toObject) {
+//       jr = jr.toObject()
+//       jr.isComplete = false
+//     }
+//   }
+//   exerciseList = exerciseList.map((t: any) => ({ ...t?.toObject(), isComplete: false }))
+//   return [...exerciseList]
+// }
 
 
 const getAllPosturalExercise = async (exerciseCount?: any) => {
@@ -238,29 +238,29 @@ const getAllPosturalExercise = async (exerciseCount?: any) => {
 }
 
 
-// const getAllGeneralExercises = async (exerciseCount?: any) => {
-//   let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount);
+const getAllGeneralExercises = async (exerciseCount?: any) => {
+  let exerciseList: any = await ExerciseList.find({ exerciseParentName: { $regex: /General/, $options: 'i' } }).limit(exerciseCount);
 
-//   // Parse the day strings to integers
-//   exerciseList.forEach((exercise: any) => {
-//     exercise.day = exercise.day.map((day: any) => parseInt(day));
-//   });
+  // Parse the day strings to integers
+  exerciseList.forEach((exercise: any) => {
+    exercise.day = exercise.day.map((day: any) => parseInt(day));
+  });
 
-//   // Sort the exercises day-wise
-//   exerciseList.sort((a: any, b: any) => {
-//     const dayA = a.day[0];
-//     const dayB = b.day[0];
-//     return dayA - dayB;
-//   });
+  // Sort the exercises day-wise
+  exerciseList.sort((a: any, b: any) => {
+    const dayA = a.day[0];
+    const dayB = b.day[0];
+    return dayA - dayB;
+  });
 
-//   // Add isComplete property
-//   exerciseList.forEach((exercise: any) => {
-//     exercise.isComplete = false;
-//   });
+  // Add isComplete property
+  exerciseList.forEach((exercise: any) => {
+    exercise.isComplete = false;
+  });
 
-//   console.log("getAllGeneralExercises ===", exerciseList);
-//   return exerciseList;
-// };
+  console.log("getAllGeneralExercises ===", exerciseList);
+  return exerciseList;
+};
 
 
 
