@@ -26,7 +26,6 @@ const apiUpdateProgram = async (req: Request, res: Response) => {
         }
 
         let template: any = program.templates.find((v: any) => (JSON.stringify(v._id) === JSON.stringify(templateId)))
-        console.log(template["days"][day])
         let arr = template["days"][day]
         if (!Array.isArray(arr) || arr.length === 0) {
             statusCode = 400

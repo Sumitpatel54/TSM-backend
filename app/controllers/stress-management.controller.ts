@@ -198,7 +198,6 @@ const searchStressManagementDetail = async (req: Request, res: Response) => {
     if (categoryId) payload.categoryId = categoryId
 
     const searchResponse: any = await StressManagementService.retrieveStressManagementWithPaginateAggregate(arr, options)
-    console.log(searchResponse)
     return res.status(200).send({
       status: true,
       data: searchResponse.docs,

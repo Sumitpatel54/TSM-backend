@@ -98,7 +98,6 @@ const retrievePosturalProgram = async (query: FilterQuery<ProgramDocument>): Pro
  */
 const updatePosturalProgramWithSet = async (programObj: any, payload: any) => {
   try {
-    console.log("calling updatePosturalProgramWithSet");  
     
     const program: any = await programForPosturalExerciseModel.findOneAndUpdate(programObj, payload, { new: true })
     if (program) {

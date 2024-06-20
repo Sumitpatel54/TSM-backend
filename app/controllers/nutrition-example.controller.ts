@@ -198,7 +198,6 @@ const searchMeals = async (req: Request, res: Response) => {
     arr.push(payload)
     if (Object.keys(match).length > 0) arr.push(match)
     if (Object.keys(sort).length > 0) arr.push(sort)
-    console.log(arr)
 
     const searchResponse: any = await NutritionExampleService.retrieveMealWithPaginateAggregate(arr, options)
     return res.status(200).send({
@@ -279,7 +278,6 @@ const apiUpdateNutritionExampleCategory = async (req: Request, res: Response) =>
     await NutritionExampleService.findAndUpdateManyNutritionExampleMeal(id, { categoryName: payload.categoryName })
 
     const updateResponse = await NutritionExampleService.updateNutritionExample(id, { categoryName: payload.categoryName })
-    console.log(updateResponse?.toObject())
     return res.status(200).send({
       status: true,
       data: updateResponse,

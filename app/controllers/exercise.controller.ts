@@ -53,7 +53,6 @@ const apiAddTag = async (req: Request, res: Response) => {
     const query = { $push: { tags: tag } }
 
     const updateExerciseResponse = await ExerciseService.updateExercise(exerciseId, query)
-    console.log(updateExerciseResponse?.toObject())
     const response = updateExerciseResponse?.toObject()?.tags.find((v: any) => v.title === payload.title)
     return res.status(200).send({
       status: true,
@@ -458,7 +457,6 @@ const apiDeleteArticleInTag = async (req: Request, res: Response) => {
     }
 
     retrieveExerciseResponse = retrieveExerciseResponse.toObject()
-    console.log("retrieveExerciseResponse", retrieveExerciseResponse)
 
     // find tag
     const tag: any = retrieveExerciseResponse.tags.find((v: any) => JSON.stringify(v._id) === JSON.stringify(tagId))
@@ -468,7 +466,6 @@ const apiDeleteArticleInTag = async (req: Request, res: Response) => {
     const query = { $set: { "tags.$.articles": articles } }
 
     const updateExerciseResponse = await ExerciseService.updateExerciseWithSet({ _id: exerciseId, "tags._id": tagId }, query)
-    console.log(updateExerciseResponse?.toObject())
     const response = updateExerciseResponse?.toObject()?.tags.find((v: any) => JSON.stringify(v._id) === JSON.stringify(tagId))
     return res.status(200).send({
       status: true,
@@ -495,7 +492,6 @@ const apiDeleteTag = async (req: Request, res: Response) => {
     const query = { $pull: { tags: tag } }
 
     const updateExerciseResponse = await ExerciseService.updateExercise(exerciseId, query)
-    console.log(updateExerciseResponse?.toObject())
     return res.status(200).send({
       status: true,
       data: updateExerciseResponse,
