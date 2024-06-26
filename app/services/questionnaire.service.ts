@@ -579,7 +579,6 @@ const generatePosturalProgramForUser = async (userId: any) => {
 
 // ========== new programs =============
 
-
 // function getTwoRandomNumber(number: number) {
 //   let number1 = Math.abs(Math.floor(Math.random() * number - 1))
 //   let number2 = Math.abs(Math.floor(Math.random() * number - 1))
@@ -729,6 +728,7 @@ const generatePosturalProgramForUser = async (userId: any) => {
 //   }
 // }
 
+// this code is fixed issues of same day exercise repeat 
 function getTwoRandomNumber(number: number) {
   let number1 = Math.abs(Math.floor(Math.random() * number - 1));
   let number2 = Math.abs(Math.floor(Math.random() * number - 1));
@@ -751,22 +751,25 @@ function getRandomNumber(number: number, exclude: Set<number> = new Set()) {
 async function getExerciseList(userId: string) {
   try {
     let exerciseList = [];
-    const questionnaireAnswers: any = await User.findOne({ _id: userId }, { questionnaireAnswers: 1 });
+    const user: any = await User.findOne({ _id: userId }, { questionnaireAnswers: 1 });
 
-    if (questionnaireAnswers === null) return [];
+    if (!user || !user.questionnaireAnswers) return [];
 
-    for (const key in questionnaireAnswers['questionnaireAnswers']) {
-      const exercise = questionnaireAnswers['questionnaireAnswers'][key]['questionnaire']['queryBlock'].filter((i: any) => {
-        if (i?.isExercise) return i;
-      });
-      exerciseList.push(exercise);
+    for (const key in user.questionnaireAnswers) {
+      const exercises = user.questionnaireAnswers[key].questionnaire.queryBlock.filter((i: any) => i?.isExercise);
+      for (const exercise of exercises) {
+        exercise.answer = user.questionnaireAnswers[key].answer;
+        exerciseList.push(exercise);
+      }
     }
 
-    return exerciseList.flat(1);
+    return exerciseList;
   } catch (error: any) {
     console.log(error.message);
+    return [];
   }
 }
+
 
 function exerciseSeederInTemplate(templates: any[], exercises: any[], usedExercises: Set<string> = new Set()) {
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -805,12 +808,18 @@ async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], 
     };
 
     for (const i of exerciseList) {
-      if (i.exerciseTag === "Forward head posture") {
+      if (i.exerciseTag === "Forward head posture" && i.answer === "Yes") {
         isExerciseFound['fhp'] = true;
-      } else if (i.exerciseTag === "Rounded shoulders") {
+        console.log("fhp true ====");
+        
+      } else if (i.exerciseTag === "Rounded shoulders" && i.answer === "Yes") {
         isExerciseFound['rs'] = true;
+        console.log("rs true ====");
       }
     }
+
+    console.log("isExerciseFound ==", isExerciseFound);
+    
 
     if (!isExerciseFound.fhp && !isExerciseFound.rs) return;
 
