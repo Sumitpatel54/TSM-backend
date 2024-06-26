@@ -839,6 +839,56 @@ async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], 
   }
 }
 
+// async function programGeneration(userId: string) {
+//   try {
+//     const exerciseList: any = await getExerciseList(userId);
+
+//     if (exerciseList.length === 0) return "No exercise found";
+
+//     let templates: any = [];
+//     const program: any = await Program.findOne({ userId: userId }, { templates: 1 });
+//     templates = program['templates'];
+//     const tags: any = await exerciseModel.findOne({ title: "Postural" }, { tags: 1, _id: 0 });
+//     const fhpID = tags.tags.find((i: any) => i.title === "Forward head posture")._id.valueOf();
+//     const rsID = tags.tags.find((i: any) => i.title === "Rounded shoulders")._id.valueOf();
+
+//     await fphOrRsExerciseGetAndSeed(exerciseList, templates, { fhpID, rsID });
+
+//     let otherExercises = [];
+//     const exercisesListWithOutFHPAndRs = await exerciseListModel.find({ tagId: { $nin: [fhpID, rsID] }, exerciseParentName: "Postural" });
+//     const usedExerciseIds = new Set<any>();
+
+//     for (const exercise of exerciseList) {
+//       if (exercise.exerciseTag !== "Forward head posture" && exercise.exerciseTag !== "Rounded shoulders") {
+//         if (exercise?.exercise === "Postural") {
+//           if (exercise.exerciseType === "Random") {
+//             let newExercise;
+//             do {
+//               const randomIndex = getRandomNumber(exercisesListWithOutFHPAndRs.length, usedExerciseIds);
+//               newExercise = exercisesListWithOutFHPAndRs[randomIndex];
+//             } while (usedExerciseIds.has(newExercise._id));
+
+//             otherExercises.push(newExercise);
+//             usedExerciseIds.add(newExercise._id);
+//           } else {
+//             const manualSelectedExercise = await exerciseListModel.findOne({ _id: exercise.exerciseList[0] });
+//             if (manualSelectedExercise !== null && !usedExerciseIds.has(manualSelectedExercise._id)) {
+//               otherExercises.push(manualSelectedExercise);
+//               usedExerciseIds.add(manualSelectedExercise._id);
+//             }
+//           }
+//         }
+//       }
+//     }
+
+//     exerciseSeederInTemplate(templates, otherExercises, usedExerciseIds);
+//     await Program.updateOne({ userId: userId }, { $set: { templates: templates } });
+//     return "Program is created";
+//   } catch (error: any) {
+//     console.log(error.message);
+//   }
+// }
+
 async function programGeneration(userId: string) {
   try {
     const exerciseList: any = await getExerciseList(userId);
@@ -855,31 +905,56 @@ async function programGeneration(userId: string) {
     await fphOrRsExerciseGetAndSeed(exerciseList, templates, { fhpID, rsID });
 
     let otherExercises = [];
-    const exercisesListWithOutFHPAndRs = await exerciseListModel.find({ tagId: { $nin: [fhpID, rsID] }, exerciseParentName: "Postural" });
+    // const exercisesListWithOutFHPAndRs = await exerciseListModel.find({ tagId: { $nin: [fhpID, rsID] }, exerciseParentName: "Postural" });
     const usedExerciseIds = new Set<any>();
 
-    for (const exercise of exerciseList) {
-      if (exercise.exerciseTag !== "Forward head posture" && exercise.exerciseTag !== "Rounded shoulders") {
-        if (exercise?.exercise === "Postural") {
-          if (exercise.exerciseType === "Random") {
-            let newExercise;
-            do {
-              const randomIndex = getRandomNumber(exercisesListWithOutFHPAndRs.length, usedExerciseIds);
-              newExercise = exercisesListWithOutFHPAndRs[randomIndex];
-            } while (usedExerciseIds.has(newExercise._id));
+    // Define the tags you are interested in
+    const specificTags = [
+      "Increased kyphosis",
+      "Elevated shoulders",
+      "TMJ",
+      "Scapular winging",
+      "Forward tilted pelvis",
+      "Backward tilted pelvis"
+    ];
 
-            otherExercises.push(newExercise);
-            usedExerciseIds.add(newExercise._id);
-          } else {
-            const manualSelectedExercise = await exerciseListModel.findOne({ _id: exercise.exerciseList[0] });
-            if (manualSelectedExercise !== null && !usedExerciseIds.has(manualSelectedExercise._id)) {
-              otherExercises.push(manualSelectedExercise);
-              usedExerciseIds.add(manualSelectedExercise._id);
-            }
+    // Collect exercises for specific tags if the user selected 'Yes' for them
+    for (const tag of specificTags) {
+      const tagID = tags.tags.find((i: any) => i.title === tag)?._id?.valueOf();
+      if (tagID) {
+        const taggedExercises = await exerciseListModel.find({ tagId: tagID, exerciseParentName: "Postural" });
+        for (const exercise of taggedExercises) {
+          if (!usedExerciseIds.has(exercise._id)) {
+            otherExercises.push(exercise);
+            usedExerciseIds.add(exercise._id);
+            console.log(`Added exercise for tag ${tag}:`, exercise);
           }
         }
       }
     }
+
+    // for (const exercise of exerciseList) {
+    //   if (exercise.exerciseTag !== "Forward head posture" && exercise.exerciseTag !== "Rounded shoulders") {
+    //     if (exercise?.exercise === "Postural") {
+    //       if (exercise.exerciseType === "Random") {
+    //         let newExercise;
+    //         do {
+    //           const randomIndex = getRandomNumber(exercisesListWithOutFHPAndRs.length, usedExerciseIds);
+    //           newExercise = exercisesListWithOutFHPAndRs[randomIndex];
+    //         } while (usedExerciseIds.has(newExercise._id));
+
+    //         otherExercises.push(newExercise);
+    //         usedExerciseIds.add(newExercise._id);
+    //       } else {
+    //         const manualSelectedExercise = await exerciseListModel.findOne({ _id: exercise.exerciseList[0] });
+    //         if (manualSelectedExercise !== null && !usedExerciseIds.has(manualSelectedExercise._id)) {
+    //           otherExercises.push(manualSelectedExercise);
+    //           usedExerciseIds.add(manualSelectedExercise._id);
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
 
     exerciseSeederInTemplate(templates, otherExercises, usedExerciseIds);
     await Program.updateOne({ userId: userId }, { $set: { templates: templates } });
