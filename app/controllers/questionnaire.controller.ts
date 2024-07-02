@@ -11,6 +11,7 @@ import UserService from "../services/user.service"
 import commonUtilitie from "../utilities/common"
 import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
 import constants from "../utilities/directoryPath"
+import Questionnaire from "../models/questionnaire.model"
 // const apiCreateQuestionnaire = async (req: Request, res: Response) => {
 //   try {
 //     let payload: any = req.body ? req.body : undefined
@@ -303,164 +304,85 @@ const apiDeleteQuestionnaire = async (req: Request, res: Response) => {
 }
 
 const apiGetFirstQuestion = async (req: Request, res: Response) => {
-  const statusCode = 500
+  const statusCode = 500;
+
   try {
-    const userId: any = req.user?.id
-    let user: any = await UserService.findUser({ _id: userId })
+    const userId: any = req.user?.id;
+    let user: any = await UserService.findUser({ _id: userId });
+
     if (user) {
-      user = user.toObject()
+      user = user.toObject();
     }
-    let questionnaireAnswers: any = user.questionnaireAnswers
-    if (
-      !questionnaireAnswers ||
-      Object.keys(questionnaireAnswers).length === 0
-    ) {
-      const retrieveQuestionnaireResponse =
-        await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({})
+
+    // Get the user's questionnaire answers
+    const questionnaireAnswers: any = user.questionnaireAnswers;
+
+    if (!questionnaireAnswers || Object.keys(questionnaireAnswers).length === 0) {
+      // If no answers, fetch the first question
+      const retrieveQuestionnaireResponse = await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({});
       if (retrieveQuestionnaireResponse !== null) {
         return res.status(200).send({
           status: true,
           data: retrieveQuestionnaireResponse,
           message: "Questionnaire Record Fetched",
-        })
+        });
       }
       return res.status(statusCode).send({
         status: false,
         message: "No record found",
-      })
+      });
     } else {
-      try {
-        const answeredQuestionIds = Object.keys(questionnaireAnswers).filter(
-          (key) => questionnaireAnswers[key] === "No"
-        )
-        const retrieveQuestionnaireResponse = await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({
-          _id: { $nin: answeredQuestionIds },
-        })
-        if (retrieveQuestionnaireResponse !== null) {
+      // Find the last answered question
+      const answeredQuestionKeys = Object.keys(questionnaireAnswers);
+      const lastAnsweredQuestionKey = answeredQuestionKeys[answeredQuestionKeys.length - 1];
+      const lastAnsweredQuestion = questionnaireAnswers[lastAnsweredQuestionKey];
+
+      // Determine the selected option and corresponding next question
+      const selectedOption = lastAnsweredQuestion.answer;
+      const nextQuestionBlock = lastAnsweredQuestion.questionnaire.queryBlock.find(
+        (block: any) => block.selectedOption === selectedOption
+      );
+
+      if (!nextQuestionBlock) {
+        return res.status(404).send({
+          status: false,
+          message: "No matching next question found for the selected option",
+        });
+      }
+
+      const nextQuestionId = nextQuestionBlock.nextQuestion;
+
+      if (nextQuestionId) {
+        const nextQuestionData = await Questionnaire.findById(nextQuestionId).lean();
+
+        if (nextQuestionData) {
           return res.status(200).send({
             status: true,
-            data: retrieveQuestionnaireResponse,
-            message: "Questionnaire Record Fetched",
-          })
-        }
-        return res.status(statusCode).send({
-          status: false,
-          message: "No record found",
-        })
-      } catch (e) {
-        // retrieve all questionnaires if an error occurred
-        const retrieveQuestionnaireResponse = await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({})
-        if (retrieveQuestionnaireResponse !== null) {
+            data: nextQuestionData,
+            message: "Next question fetched",
+          });
+        } else {
           return res.status(200).send({
             status: true,
-            data: retrieveQuestionnaireResponse,
-            message: "Questionnaire Record Fetched",
-          })
+            data: null,
+            message: "No more questions",
+          });
         }
-        return res.status(statusCode).send({
-          status: false,
-          message: "No record found",
-        })
+      } else {
+        return res.status(200).send({
+          status: true,
+          data: null,
+          message: "No more questions",
+        });
       }
     }
   } catch (error: any) {
     return res.status(404).send({
       status: false,
       message: error.message,
-    })
+    });
   }
-}
-
-// const apiGetFirstQuestion = async (req: Request, res: Response) => {
-//   const statusCode = 500
-
-//   try {
-//     const userId: any = req.user?.id
-
-//     let user: any = await UserService.findUser({ _id: userId })
-
-//     if (user) {
-//       user = user.toObject()
-//     }
-
-//     let questionnaireAnswers: any = user.questionnaireAnswers
-
-//     if (
-//       !questionnaireAnswers ||
-//       Object.keys(questionnaireAnswers).length === 0
-//     ) {
-//       const retrieveQuestionnaireResponse =
-//         await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({})
-//       if (retrieveQuestionnaireResponse !== null) {
-//         return res.status(200).send({
-//           status: true,
-//           data: retrieveQuestionnaireResponse,
-//           message: "Questionnaire Record Fetched",
-//         })
-//       }
-//       return res.status(statusCode).send({
-//         status: false,
-//         message: "No record found",
-//       })
-//     } else {
-//       try {
-//         questionnaireAnswers = Object.keys(questionnaireAnswers)
-//         const retrieveQuestionnaireResponse =
-//           await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({
-//             _id: { $nin: questionnaireAnswers },
-//           })
-//         if (retrieveQuestionnaireResponse !== null) {
-//           return res.status(200).send({
-//             status: true,
-//             data: retrieveQuestionnaireResponse,
-//             message: "Questionnaire Record Fetched",
-//           })
-//         }
-//         return res.status(statusCode).send({
-//           status: false,
-//           message: "No record found",
-//         })
-//       } catch (e) {
-//         // retrieve all questionnaires if an error occurred
-//         const retrieveQuestionnaireResponse =
-//           await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({})
-//         if (retrieveQuestionnaireResponse !== null) {
-//           return res.status(200).send({
-//             status: true,
-//             data: retrieveQuestionnaireResponse,
-//             message: "Questionnaire Record Fetched",
-//           })
-//         }
-//         return res.status(statusCode).send({
-//           status: false,
-//           message: "No record found",
-//         })
-//       }
-//     }
-//   } catch (error: any) {
-//     return res.status(404).send({
-//       status: false,
-//       message: error.message,
-//     })
-//   }
-// }
-
-// const testPrograms = async () => {
-//   try {
-//     console.log("=-===================");
-    
-//     // const userId: any = req.user?.id
-//     const userId: any = "666abef983bddf5ef8670702"
-//     const program =  await QuestionnaireService.generateProgramForUser(userId)
-//     const PosturalProgram = await QuestionnaireService.generatePosturalProgramForUser(userId)
-//     console.log("program =", program);
-//     console.log("PosturalProgram =", PosturalProgram);
-    
-//   } catch (error) {
-//     console.log("error ========", error);
-//   }
-// }
-
+};
 
 
 /**
