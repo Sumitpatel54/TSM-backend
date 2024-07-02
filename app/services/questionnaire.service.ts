@@ -510,7 +510,7 @@ const generateProgramForUser = async (userId: any) => {
   let problems_ = []
   let answers_ = []
 
-  console.log("user id=", userId);
+  // console.log("user id=", userId);
 
   let user = await User.findById(userId)
   if (!user) throw new Error("Cannot generate exercise program. User does not exist")
@@ -999,10 +999,10 @@ async function programGeneration(userId: string) {
       if (tagId) {
         const exercises = await exerciseListModel.find({ tagId, exerciseParentName: "Postural" });
         tagExercises[tag] = exercises || [];
-        console.log(`Found ${exercises.length} exercises for tag ${tag}`);
+        // console.log(`Found ${exercises.length} exercises for tag ${tag}`);
       } else {
         tagExercises[tag] = [];  // Ensure tagExercises[tag] is always an array
-        console.log(`No exercises found for tag ${tag}`);
+        // console.log(`No exercises found for tag ${tag}`);
       }
     }
 
@@ -1026,10 +1026,10 @@ async function programGeneration(userId: string) {
             }
           }
         } else {
-          console.log(`No exercises found or not a specific tag: ${tag}`);
+          // console.log(`No exercises found or not a specific tag: ${tag}`);
         }
       } else {
-        console.log(`Skipped exercise not selected or not postural:`, exercise);
+        // console.log(`Skipped exercise not selected or not postural:`, exercise);
       }
     }
 
