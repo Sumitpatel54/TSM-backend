@@ -986,7 +986,7 @@ async function programGeneration(userId: string) {
       "Increased kyphosis",
       "Forward tilted pelvis",
       "Elevated shoulders",
-      "TMJ",
+      "TMJ-pain",
       "Scapular winging",
       "Backward tilted pelvis"
     ];
