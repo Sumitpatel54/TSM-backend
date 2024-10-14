@@ -172,7 +172,7 @@ const forgetPassword = async (req: Request, res: Response) => {
       message: `A reset password email has been sent to ${user.email}`
     })
   } catch (error: any) {
-    console.log(error.message)
+    // console.log(error.message)
     return res.status(statusCode).json({
       success: false,
       error: {
@@ -250,13 +250,13 @@ const apiCheckAuthentication = async (req: Request, res: Response, _next: NextFu
     })
   }
 
-  console.log(admin.loginSecure)
+  // console.log(admin.loginSecure)
 
   if (admin.loginSecure === loginSecure) {
     //delete admin.loginSecure
     //generate token here and pass forward
     const tokens: Object = await generateAccessTokenAndRefreshToken(admin, req)
-    console.log("tokens", tokens)
+    // console.log("tokens", tokens)
     delete admin._doc.loginSecure
     return res.status(HttpStatusCode.OK).send({
       status: true,
@@ -277,6 +277,35 @@ const apiCheckAuthentication = async (req: Request, res: Response, _next: NextFu
 
 }
 
+const apiCheckAuthenticationUser = async (req: Request, res: Response, _next: NextFunction) => {
+  const email: any = req.params.email?.toString()
+
+  const admin: any = await UserService.findUser({ 'email': email })
+
+  if (admin) {
+    // Update isVerified to true
+    admin.isVerified = true
+    await admin.save()
+
+    // Generate token here and pass forward
+    const tokens: Object = await generateAccessTokenAndRefreshToken(admin, req)
+    delete admin._doc.loginSecure
+    return res.status(HttpStatusCode.OK).send({
+      status: true,
+      data: {
+        ...admin._doc,
+        ...tokens
+      },
+      message: "Logged-in successful"
+    })
+  } else {
+    return res.status(HttpStatusCode.BAD_REQUEST).send({
+      status: false,
+      message: "Authentication Failed"
+    })
+  }
+}
+
 /**
  * Used to generate access token and refresh token
  *
@@ -285,7 +314,7 @@ const apiCheckAuthentication = async (req: Request, res: Response, _next: NextFu
  */
 const generateAccessTokenAndRefreshToken = async (user: UserDocument, req: Request) => {
   const issuer = req.headers["host"]
-  console.log("issuer", issuer)
+  // console.log("issuer", issuer)
 
   // Create Access Token
   const accessToken = createAccessToken({ user, issuer })
@@ -343,6 +372,38 @@ const register = async (req: Request, res: Response) => {
         message: `A verification email has been sent to ${firstName} `
       },
       message: "Patient Record Created"
+    })
+  } catch (error: any) {
+    res.status(statusCode).json({ status: false, message: error.message })
+  }
+}
+
+const resendEmail = async (req: Request, res: Response) => {
+  let statusCode = 500
+  try {
+    let user
+    const { email } = req.body
+
+    // validate request
+    commonUtilitie.validateRequestForEmptyValues({ email })
+
+    // validate email
+    if (!validator.isEmail(email)) {
+      statusCode = 400
+      throw new Error("Email is invalid.")
+    }
+
+    // check if account doesn't already exists
+    user = await UserService.findUser({ email })
+
+    // send email verification
+    await sendEmailVerification(user, req)
+
+    return res.status(200).json({
+      status: true,
+      data: {
+        message: `A verification email has been sent to ${user?.firstName} `
+      }
     })
   } catch (error: any) {
     res.status(statusCode).json({ status: false, message: error.message })
@@ -479,4 +540,4 @@ const facebookOAuth = async (req: MyUserRequest, res: Response) => {
   }
 }
 
-export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth }
+export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication,apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail }

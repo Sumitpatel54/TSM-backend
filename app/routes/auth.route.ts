@@ -9,9 +9,11 @@ const router = express.Router()
 router.post("/adminLogin", checkEmailNotExists as any, comparePassword as any, AuthController.apiAdminLogin)
 router.post("/resendAdminLogin", checkEmailNotExists as any, AuthController.resendApiAdminLogin)
 router.get("/checkAuthentication/:email/:loginSecure", AuthController.apiCheckAuthentication)
+router.get("/checkAuthentication/:email", AuthController.apiCheckAuthenticationUser)
 
 // patient auth
 router.post("/register", AuthController.register)
+router.post("/resend-email", AuthController.resendEmail)
 router.post('/login', AuthController.login)
 router.post('/forgot-password', AuthController.forgetPassword)
 router.post('/reset-password/:token', AuthController.resetPassword)

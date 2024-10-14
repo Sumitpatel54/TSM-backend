@@ -27,11 +27,14 @@ const MONGO = {
 }
 
 const SERVER_HOSTNAME = process.env.SERVER_HOSTNAME || "localhost"
-const SERVER_PORT = process.env.SERVER_PORT || 8000
+const SERVER_PORT = process.env.SERVER_PORT || 3000
 
 const SERVER = {
   hostname: SERVER_HOSTNAME,
   port: SERVER_PORT
+}
+const LOCAL_SERVER = {
+  host_url: 'http://localhost:3000',
 }
 
 const JWT = {
@@ -100,7 +103,8 @@ const config = {
   routePermission,
   stripe: STRIPE,
   redis,
-  PROGRESS_QUESTION_LINK
+  PROGRESS_QUESTION_LINK,
+  LOCAL_SERVER
 }
 
 export default config

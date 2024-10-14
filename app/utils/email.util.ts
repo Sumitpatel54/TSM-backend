@@ -62,7 +62,8 @@ export const sendEmailVerification = async (user: any, req: any) => {
     let subject = 'Confirm Your Email to Begin Your Journey'
     let to = user.email
     let from = `${config.sendGrid.FROM_EMAIL}`
-    let link = 'https://' + req.headers.host + '/auth/verify/' + token.token
+    let link = `${config.LOCAL_SERVER.host_url}/auth/checkAuthentication/${user.email}/${token.token}`
+    // let link = 'https://' + req.headers.host + '/auth/verify/' + token.token
     let html = `
     <p>Hi ${user.firstName},
     <p>Welcome to The Scandinavian Method! We’re excited to help you take the first step toward a migraine-free life.</p>

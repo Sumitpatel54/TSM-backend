@@ -94,11 +94,11 @@ const apiDeleteAdmin = async (req: Request, res: Response) => {
 }
 
 const adminAccessOnly = async (_req: Request, _res: Response) => {
-   console.log("adminAccessOnly")
+//    console.log("adminAccessOnly")
 }
 
 const userAccessOnly = async (_req: Request, _res: Response) => {
-    console.log("userAccessOnly")
+    // console.log("userAccessOnly")
  }
 
 export default {
