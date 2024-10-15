@@ -52,11 +52,11 @@ const JWT = {
 //   EMAIL_FROM: process.env.MAIL_FROM || ""
 // }
 
-// const GOOGLE_OAUTH_CREDENTIALS = {
-//   CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-//   CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-//   AUTH_REDIRECT_URL: process.env.GOOGLE_OAUTH_REDIRECT_URL
-// }
+const GOOGLE_OAUTH_CREDENTIALS = {
+  CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  AUTH_REDIRECT_URL: process.env.GOOGLE_OAUTH_REDIRECT_URL
+}
 
 // const aws_parameters = {
 //   accessKeyId: process.env.ACCESS_KEY_ID,
@@ -104,7 +104,8 @@ const config = {
   stripe: STRIPE,
   redis,
   PROGRESS_QUESTION_LINK,
-  LOCAL_SERVER
+  LOCAL_SERVER,
+  GOOGLE_OAUTH_CREDENTIALS
 }
 
 export default config

@@ -1,7 +1,13 @@
+/* eslint-disable no-trailing-spaces */
+/* eslint-disable semi */
+/* eslint-disable unused-imports/no-unused-vars */
 import { NextFunction, Request, Response } from "express"
 import HttpStatusCode from "http-status-codes"
 import { suid } from 'rand-token'
 import validator from 'validator'
+import User from '../models/user.model'
+import passport from 'passport'
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 
 // import config from "../configurations/config"
 import { UserDocument } from "../interfaces/user.interface"
@@ -10,11 +16,14 @@ import UserService from "../services/user.service"
 import { generateRefreshToken } from "../services/userToken"
 import commonUtilitie from "../utilities/common"
 import { sendEmail, sendEmailVerification } from "../utils/email.util"
+import config from '../configurations/config'
+
+
+
 // import passport from "passport"
 // import { IVerifyOptions } from "passport-local"
 
 // import "../config/passport"
-// import config from "../config/config"
 // import HttpException from "../exceptions/HttpException"
 // import { AdminDocument } from "../interfaces/admin.interface"
 // import RequestWithAdmin from "../interfaces/requestWithAdmin"
@@ -194,7 +203,7 @@ const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token } = req.params
 
-    const user:any = await UserService.findUser({
+    const user: any = await UserService.findUser({
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() }
     })
@@ -229,7 +238,7 @@ const resetPassword = async (req: Request, res: Response) => {
     await sendEmail({ to, from, subject, html })
 
     res.status(200).json({ status: true, message: `Your password has been updated` })
-  } catch(error: any) {
+  } catch (error: any) {
     return res.status(500).send({
       status: false,
       message: error.message
@@ -458,6 +467,31 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
   }
 }
 
+
+
+const facebookOAuth = async (req: MyUserRequest, res: Response) => {
+  let statusCode = 500
+
+  try {
+    if (!req.user) {
+      statusCode = 401
+      throw new Error('User not authenticated')
+    }
+
+    const token: any = req.user?.generateJWT()
+
+    return res.header("auth-token", token).status(200).json({
+      status: true,
+      data: {
+        token,
+        user: req.user
+      }
+    })
+  } catch (error: any) {
+    res.status(statusCode).json({ status: false, message: error.message })
+  }
+}
+
 /**
  * @summary - Login a patient
  * @param {*} req
@@ -483,12 +517,6 @@ const login = async (req: Request, res: Response) => {
       statusCode = 400
       throw new Error("You're not a registered user.")
     }
-
-    // removed by sharnam j on 30-5-2023
-    // if (user.role === "admin") {
-    //   statusCode = 400
-    //   throw new Error(`Invalid email or password`)
-    // }
 
     // validate the password
     if (!user.comparePassword(password)) {
@@ -517,27 +545,120 @@ const login = async (req: Request, res: Response) => {
   }
 }
 
-const facebookOAuth = async (req: MyUserRequest, res: Response) => {
-  let statusCode = 500
+// setting up our Google Strategy when we get the profile info back from Google
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
+      clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+      callbackURL: config.GOOGLE_OAUTH_CREDENTIALS.AUTH_REDIRECT_URL!,
+    },
+    async (accessToken: any, refreshToken: any, profile: any, done: any) => {
+      // passport callback function
+      console.log("calling google api ========")
+      const {
+        id: googleId,
+        displayName: username,
+        _json
+      } = profile
 
-  try {
-    if (!req.user) {
-      statusCode = 401
-      throw new Error('User not authenticated')
-    }
-
-    const token: any = req.user?.generateJWT()
-
-    return res.header("auth-token", token).status(200).json({
-      status: true,
-      data: {
-        token,
-        user: req.user
+      const user = {
+        googleId,
+        username,
+        firstName: _json.given_name,
+        lastName: _json.family_name,
+        photo: _json.picture,
+        email: _json.email,
       }
-    })
-  } catch (error: any) {
-    res.status(statusCode).json({ status: false, message: error.message })
-  }
-}
 
-export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication,apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail }
+      console.log('user ==', user)
+      
+      const existingUser = await User.findOne({ 'google.id': googleId })
+      
+      console.log('existingUser ==', existingUser)
+      if (existingUser) {
+        return done(null, existingUser)
+      }
+
+      const newUser = new User({
+        method: 'google',
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        google: {
+          id: googleId,
+          token: accessToken
+        },
+        isVerified: true,
+        isActive: true
+      })
+
+      await newUser.save()
+      console.log('newUser ==', newUser)
+      done(null, newUser)
+    }))
+
+// try {
+//   passport.use(
+//     new GoogleStrategy(
+//       {
+//         clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
+//         clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+//         callbackURL: config.GOOGLE_OAUTH_CREDENTIALS.AUTH_REDIRECT_URL!,
+//       },
+//       async (accessToken: any, refreshToken: any, profile: any, done: any) => {
+//         try {
+//           let user: any;
+//           user = await User.findOne({ 'google.id': profile.id });
+
+//           if (!user) {
+//             user = new User({
+//               email: profile.emails![0].value,
+//               firstName: profile.name!.givenName,
+//               lastName: profile.name!.familyName,
+//               method: 'google',
+//               google: {
+//                 id: profile.id,
+//                 token: accessToken
+//               },
+//               isVerified: true,
+//               isActive: true
+//             });
+//             await user.save();
+//           } else if (user.method !== 'google') {
+//             user.method = 'google';
+//             user.google = {
+//               id: profile.id,
+//               token: accessToken
+//             };
+//             await user.save();
+//           }
+
+//           done(null, user);
+//         } catch (error) {
+//           console.error('Error in Google Strategy callback:', error);
+//           done(error, false);
+//         }
+//       }
+//     )
+//   );
+// } catch (error) {
+//   console.error('Error setting up Google Strategy:', error);
+// }
+
+// export const googleAuth = passport.authenticate('google', { scope: ['profile', 'email'] });
+
+// export const googleAuthCallback = (req: Request, res: Response) => {
+//   passport.authenticate('google', { failureRedirect: '/login' }, (err, user, info) => {
+//     if (err) {
+//       return res.status(500).json({ success: false, message: 'Authentication failed' });
+//     }
+//     if (!user) {
+//       return res.status(401).json({ success: false, message: 'User not found' });
+//     }
+//     const token = user.generateJWT();
+//     res.json({ success: true, token, user });
+//   })(req, res);
+// };
+
+export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail }

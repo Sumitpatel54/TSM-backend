@@ -11,8 +11,8 @@ import fileupload from 'express-fileupload'
 import session from "express-session"
 import mongoose from "mongoose"
 import passport from 'passport'
-import facebookTokenStrategy from 'passport-facebook-token'
-import GoogleStrategy from "passport-google-oauth20"
+// import facebookTokenStrategy from 'passport-facebook-token'
+// import GoogleStrategy from "passport-google-oauth20"
 
 import config from "./configurations/config"
 import logging from "./configurations/logging"
@@ -35,10 +35,7 @@ import subCategoryRoutes from "./routes/sub-category.route"
 import testRoutes from "./routes/test.route"
 import userRoutes from "./routes/user.route"
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
-// import userModel from "./models/user.model"
-// import exerciseModel from "./models/exercise.model"
-// import exerciseListModel from "./models/exerciseList.model"
-// import programModel from "./models/program.model"
+
 
 const NAMESPACE = "Scandinavian Server"
 const app = express()
@@ -116,79 +113,79 @@ passport.deserializeUser((id, done) => {
         })
 })
 
-passport.use('facebookToken', new facebookTokenStrategy({
-    clientID: process.env.FACEBOOK_APP_ID || "",
-    clientSecret: process.env.FACEBOOK_APP_SECRET || ""
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
+// passport.use('facebookToken', new facebookTokenStrategy({
+//     clientID: process.env.FACEBOOK_APP_ID || "",
+//     clientSecret: process.env.FACEBOOK_APP_SECRET || ""
+// }, async (accessToken, refreshToken, profile, done) => {
+//     try {
 
-        const existingUser = await User.findOne({ 'facebook.id': profile.id })
+//         const existingUser = await User.findOne({ 'facebook.id': profile.id })
 
-        if (existingUser) {
-            return done(null, existingUser)
-        }
+//         if (existingUser) {
+//             return done(null, existingUser)
+//         }
 
-        const newUser = new User({
-            method: 'facebook',
-            email: profile.emails[0].value,
-            facebook: {
-                id: profile.id,
-                email: profile.emails[0].value,
-                token: accessToken
-            }
-        })
+//         const newUser = new User({
+//             method: 'facebook',
+//             email: profile.emails[0].value,
+//             facebook: {
+//                 id: profile.id,
+//                 email: profile.emails[0].value,
+//                 token: accessToken
+//             }
+//         })
 
-        await newUser.save()
-        done(null, newUser)
+//         await newUser.save()
+//         done(null, newUser)
 
-    } catch (error) {
-        done(error, false)
-    }
-}))
+//     } catch (error) {
+//         done(error, false)
+//     }
+// }))
 
 // setting up our Google Strategy when we get the profile info back from Google
-passport.use(new GoogleStrategy.Strategy({
-    // options for the google strategy
-    callbackURL: '/auth/googleRedirect',
-    clientID: process.env.GOOGLECLIENTID || "",
-    clientSecret: process.env.GOOGLECLIENTSECRET || "",
-}, async (accessToken, refreshToken, profile, done) => {
-    // passport callback function
-    const {
-        id: googleId,
-        displayName: username,
-        _json
-    } = profile
+// passport.use(new GoogleStrategy.Strategy({
+//     // options for the google strategy
+//     callbackURL: '/auth/googleRedirect',
+//     clientID: process.env.GOOGLECLIENTID || "",
+//     clientSecret: process.env.GOOGLECLIENTSECRET || "",
+// }, async (accessToken, refreshToken, profile, done) => {
+//     // passport callback function
+//     const {
+//         id: googleId,
+//         displayName: username,
+//         _json
+//     } = profile
 
-    const user = {
-        googleId,
-        username,
-        firstName: _json.given_name,
-        lastName: _json.family_name,
-        photo: _json.picture,
-        email: _json.email,
-    }
+//     const user = {
+//         googleId,
+//         username,
+//         firstName: _json.given_name,
+//         lastName: _json.family_name,
+//         photo: _json.picture,
+//         email: _json.email,
+//     }
 
-    const existingUser = await User.findOne({ 'google.id': googleId })
+//     const existingUser = await User.findOne({ 'google.id': googleId })
 
-    if (existingUser) {
-        return done(null, existingUser)
-    }
+//     if (existingUser) {
+//         return done(null, existingUser)
+//     }
 
-    const newUser = new User({
-        method: 'google',
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        google: {
-            id: googleId,
-            token: accessToken
-        }
-    })
+//     const newUser = new User({
+//         method: 'google',
+//         email: user.email,
+//         firstName: user.firstName,
+//         lastName: user.lastName,
+//         google: {
+//             id: googleId,
+//             token: accessToken
+//         }
+//     })
 
-    await newUser.save()
-    done(null, newUser)
-}))
+//     await newUser.save()
+//     done(null, newUser)
+// }))
 
 /** Routes go here */
 app.use("/auth", authRoutes)
@@ -219,169 +216,12 @@ app.get("/", (_req: Request, res: Response) => {
 //app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 
 const httpServer = http.createServer(app)
-const port = 10000;
+// const port = 10000;
 
-// app.listen(port, () => console.log("Server ready on port 3000."));
-httpServer.listen(port, () => {
+httpServer.listen(config.server.port, () => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
 })
 
-export default app
-// =====================================
-// function getTwoRandomNumber(number: number) {
-//     let number1 = Math.abs(Math.floor(Math.random() * number - 1))
-//     let number2 = Math.abs(Math.floor(Math.random() * number - 1))
+// export default app
 
-//     if (number1 === number2)
-//         getTwoRandomNumber(number)
-
-//     return { number1, number2 }
-// }
-// function getRandomNumber(number: number) {
-//     return Math.abs(Math.floor(Math.random() * number - 1))
-// }
-// async function getExerciseList(userId: string) {
-    
-//     try {
-//         let exerciseList = []
-//         const questionnaireAnswers: any = await userModel.findOne({ _id: userId }, { questionnaireAnswers: 1 })
-
-//         if (questionnaireAnswers === null)
-//             return []
-
-//         for (const key in questionnaireAnswers['questionnaireAnswers']) {
-//             const exercise = questionnaireAnswers['questionnaireAnswers'][key]['questionnaire']['queryBlock'].filter((i: any) => {
-//                 if (i?.isExercise)
-//                     return i
-//             })
-//             exerciseList.push(exercise)
-//         }
-
-//         return exerciseList.flat(1)
-
-//     } catch (error: any) {
-//         console.log(error.message)
-//     }
-// }
-
-
-// function exerciseSeederInTemplate(templates: any[], exercises: any[]) {
-//     console.log("calling the exerciseSeederInTemplate =======")
-//     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-//     if (exercises.length === 0) {
-//         return
-//     }
-
-//     if (exercises.length === 1) {
-//         for (const i of templates) {
-//             for (const j in i['days']) {
-//                 if (days.includes(j)) {
-//                     i['days'][j].push(exercises[0])
-//                 }
-//             }
-//         }
-
-//     } else {
-//         for (const i of templates) {
-//             for (const j in i['days']) {
-//                 if (days.includes(j)) {
-//                     const randomNumbers = getTwoRandomNumber(exercises.length)
-//                     i['days'][j].push(exercises[randomNumbers.number1])
-//                     i['days'][j].push(exercises[randomNumbers.number2])
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], { fhpID, rsID }: { fhpID: string, rsID: string }) {
-//     try {
-//         console.log("fphOrRsExerciseGetAndSeed ==", fphOrRsExerciseGetAndSeed)
-//         const isExerciseFound = {
-//             fhp: false,
-//             rs: false
-//         }
-
-//         for (const i of exerciseList) {
-//             if (i.exerciseTag === "Forward head posture") {
-//                 isExerciseFound['fhp'] = true
-
-//             } else if (i.exerciseTag === "Rounded shoulders") {
-//                 isExerciseFound['rs'] = true
-
-//             }
-//         }
-//         console.log(isExerciseFound)
-
-//         if (!isExerciseFound.fhp && !isExerciseFound.rs)
-//             return
-
-//         if (isExerciseFound.fhp) {
-//             const fhpExercises = await exerciseListModel.find({ tagId: fhpID })
-//             exerciseSeederInTemplate(templates, fhpExercises)
-//         }
-
-//         if (isExerciseFound.rs) {
-//             const rsExercises = await exerciseListModel.find({ tagId: rsID })
-//             exerciseSeederInTemplate(templates, rsExercises)
-//         }
-
-//         return
-
-//     } catch (error: any) {
-//         console.log(error.message)
-//     }
-// }
-
-// async function programGeneration(userId: string) {
-//     try {
-//         console.log("programGeneration ============");
-        
-//         const exerciseList: any = await getExerciseList(userId)
-        
-//         console.log("programGeneration ============", exerciseList);
-//         if (exerciseList.length === 0)
-//             return "No exercise found"
-
-//         let templates: any = []
-//         const program: any = await programModel.findOne({ userId: userId }, { templates: 1 })
-//         templates = program['templates']
-//         const tags: any = await exerciseModel.findOne({ title: "Postural" }, { tags: 1, _id: 0 })
-//         const fhpID = tags.tags.find((i: any) => i.title === "Forward head posture")._id.valueOf()
-//         const rsID = tags.tags.find((i: any) => i.title === "Rounded shoulders")._id.valueOf()
-
-//         await fphOrRsExerciseGetAndSeed(exerciseList, templates, { fhpID, rsID })
-
-//         let otherExercises = []
-//         const exercisesListWithOutFHPAndRs = await exerciseListModel.find({ tagId: { $nin: [fhpID, rsID] }, exerciseParentName: "Postural" })
-
-//         for (const exercise of exerciseList) {
-//             if (exercise.exerciseTag !== "Forward head posture" && exercise.exerciseTag !== "Rounded shoulders") {
-//                 if (exercise?.exercise === "Postural") {
-//                     if (exercise.exerciseType === "Random") {
-//                         otherExercises.push(exercisesListWithOutFHPAndRs[getRandomNumber(exercisesListWithOutFHPAndRs.length)])
-//                     } else {
-//                         const manualSelectedExercise = await exerciseListModel.findOne({ _id: exercise.exerciseList[0] })
-//                         if (manualSelectedExercise !== null) {
-//                             otherExercises.push(manualSelectedExercise)
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-
-//         exerciseSeederInTemplate(templates, otherExercises)
-
-//         await programModel.updateOne({ userId: userId }, { $set: { templates: templates } })
-//         return "Program is created"
-
-//     }
-//     catch (error: any) {
-//         console.log(error.message)
-//     }
-// }
-
-// programGeneration("65e8353de8899ad21c423422")
-//     .then(res => console.log("res ==", res))
-//     .catch(err => console.log('eerr ==', err))
 
