@@ -100,6 +100,7 @@ const config = {
   mongo: MONGO,
   sendGrid,
   jwt: JWT,
+  SERVER_HOSTNAME,
   routePermission,
   stripe: STRIPE,
   redis,

@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable no-trailing-spaces */
 /* eslint-disable semi */
 /* eslint-disable unused-imports/no-unused-vars */
@@ -545,106 +546,177 @@ const login = async (req: Request, res: Response) => {
   }
 }
 
-// setting up our Google Strategy when we get the profile info back from Google
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
-      clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
-      callbackURL: config.GOOGLE_OAUTH_CREDENTIALS.AUTH_REDIRECT_URL!,
-    },
-    async (accessToken: any, refreshToken: any, profile: any, done: any) => {
-      // passport callback function
-      console.log("calling google api ========")
-      const {
-        id: googleId,
-        displayName: username,
-        _json
-      } = profile
+// const googleAuth = async (req: Request, res: Response) => {
 
-      const user = {
-        googleId,
-        username,
-        firstName: _json.given_name,
-        lastName: _json.family_name,
-        photo: _json.picture,
-        email: _json.email,
-      }
+//   // return res.status(200).json({ success: true, msg: `Hello` })
+//   try {
+//     passport.use(
+//       new GoogleStrategy(
+//         {
+//           clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
+//           clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+//           callbackURL: 'http://localhost:3000/api/auth/callback/google',
+//         },
+//         async (accessToken: any, refreshToken: any, profile: any, done: any) => {
+//           // passport callback function
+//           console.log("calling google api ========")
+//           const {
+//             id: googleId,
+//             displayName: username,
+//             _json
+//           } = profile
 
-      console.log('user ==', user)
-      
-      const existingUser = await User.findOne({ 'google.id': googleId })
-      
-      console.log('existingUser ==', existingUser)
-      if (existingUser) {
-        return done(null, existingUser)
-      }
-
-      const newUser = new User({
-        method: 'google',
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        google: {
-          id: googleId,
-          token: accessToken
-        },
-        isVerified: true,
-        isActive: true
-      })
-
-      await newUser.save()
-      console.log('newUser ==', newUser)
-      done(null, newUser)
-    }))
-
-// try {
-//   passport.use(
-//     new GoogleStrategy(
-//       {
-//         clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
-//         clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
-//         callbackURL: config.GOOGLE_OAUTH_CREDENTIALS.AUTH_REDIRECT_URL!,
-//       },
-//       async (accessToken: any, refreshToken: any, profile: any, done: any) => {
-//         try {
-//           let user: any;
-//           user = await User.findOne({ 'google.id': profile.id });
-
-//           if (!user) {
-//             user = new User({
-//               email: profile.emails![0].value,
-//               firstName: profile.name!.givenName,
-//               lastName: profile.name!.familyName,
-//               method: 'google',
-//               google: {
-//                 id: profile.id,
-//                 token: accessToken
-//               },
-//               isVerified: true,
-//               isActive: true
-//             });
-//             await user.save();
-//           } else if (user.method !== 'google') {
-//             user.method = 'google';
-//             user.google = {
-//               id: profile.id,
-//               token: accessToken
-//             };
-//             await user.save();
+//           const user = {
+//             googleId,
+//             username,
+//             firstName: _json.given_name,
+//             lastName: _json.family_name,
+//             photo: _json.picture,
+//             email: _json.email,
 //           }
 
-//           done(null, user);
-//         } catch (error) {
-//           console.error('Error in Google Strategy callback:', error);
-//           done(error, false);
-//         }
-//       }
-//     )
-//   );
-// } catch (error) {
-//   console.error('Error setting up Google Strategy:', error);
+//           console.log('user ==', user)
+
+//           const existingUser = await User.findOne({ 'google.id': googleId })
+
+//           console.log('existingUser ==', existingUser)
+//           if (existingUser) {
+//             return done(null, existingUser)
+//           }
+
+//           const newUser = new User({
+//             method: 'google',
+//             email: user.email,
+//             firstName: user.firstName,
+//             lastName: user.lastName,
+//             google: {
+//               id: googleId,
+//               token: accessToken
+//             },
+//             isVerified: true,
+//             isActive: true
+//           })
+
+//           await newUser.save()
+//           console.log('newUser ==', newUser)
+//           done(null, newUser)
+//           return res.status(200).json({ success: true, data: newUser, msg: `Hello` })
+//         }))
+
+//     passport.serializeUser((user: any, done) => {
+//       // calling done method once we get the user from the db
+//       done(null, user?.google?.id)
+//     })
+
+//     passport.deserializeUser((id, done) => {
+//       User.findOne({ '_id': id })
+//         .then(currentUser => {
+//           // calling done once we've found the user
+//           done(null, currentUser)
+//         })
+//     })
+//   } catch (error: any) {
+//     console.log('Error in google Auth ==', error)
+//     res.status(500).json({ status: false, message: error.message })
+//   }
+
 // }
+
+
+// setting up our serialize and deserialize methods from passport
+// passport.serializeUser((user: any, done) => {
+//   // calling done method once we get the user from the db
+//   done(null, user?.google?.id)
+// })
+
+// passport.deserializeUser((id, done) => {
+//   User.findOne({ '_id': id })
+//     .then(currentUser => {
+//       // calling done once we've found the user
+//       done(null, currentUser)
+//     })
+// })
+
+// setting up our Google Strategy when we get the profile info back from Google
+// passport.use(
+//   new GoogleStrategy(
+//     {
+//       clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
+//       clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+//       callbackURL: 'http://localhost:8000/auth/google/callback',
+//     },
+//     async (accessToken: any, refreshToken: any, profile: any, done: any) => {
+//       // passport callback function
+//       console.log("calling google api ========")
+//       const {
+//         id: googleId,
+//         displayName: username,
+//         _json
+//       } = profile
+
+//       const user = {
+//         googleId,
+//         username,
+//         firstName: _json.given_name,
+//         lastName: _json.family_name,
+//         photo: _json.picture,
+//         email: _json.email,
+//       }
+
+//       console.log('user ==', user)
+
+//       const existingUser = await User.findOne({ 'google.id': googleId })
+
+//       console.log('existingUser ==', existingUser)
+//       if (existingUser) {
+//         return done(null, existingUser)
+//       }
+
+//       const newUser = new User({
+//         method: 'google',
+//         email: user.email,
+//         firstName: user.firstName,
+//         lastName: user.lastName,
+//         google: {
+//           id: googleId,
+//           token: accessToken
+//         },
+//         isVerified: true,
+//         isActive: true
+//       })
+
+//       await newUser.save()
+//       console.log('newUser ==', newUser)
+//       done(null, newUser)
+//     }))
+
+// const googleAuth = async (req: Request, res: Response) => {
+//   try {
+//     // This function can now just call the passport.authenticate middleware
+//     passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, (err:any) => {
+//       if (err) {
+//         return res.status(500).json({ status: false, message: err.message });
+//       }
+//       // Handle successful authentication here if needed
+//     });
+//     passport.serializeUser((user: any, done) => {
+//       // calling done method once we get the user from the db
+//       done(null, user?.google?.id)
+//     })
+    
+//     passport.deserializeUser((id, done) => {
+//       User.findOne({ '_id': id })
+//         .then(currentUser => {
+//           // calling done once we've found the user
+//           done(null, currentUser)
+//         })
+//     })
+//   } catch (error: any) {
+//     console.log('Error in google Auth ==', error);
+//     res.status(500).json({ status: false, message: error.message });
+//   }
+// };
+
 
 // export const googleAuth = passport.authenticate('google', { scope: ['profile', 'email'] });
 

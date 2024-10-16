@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable semi */
 /* eslint-disable no-trailing-spaces */
 import http from "http"
@@ -12,7 +13,7 @@ import session from "express-session"
 import mongoose from "mongoose"
 import passport from 'passport'
 // import facebookTokenStrategy from 'passport-facebook-token'
-// import GoogleStrategy from "passport-google-oauth20"
+import GoogleStrategy from "passport-google-oauth20"
 
 import config from "./configurations/config"
 import logging from "./configurations/logging"
@@ -54,6 +55,20 @@ mongoose.Promise = global.Promise
 
 // // Enable CORS on all origins
 app.use(cors())
+// app.use(cors({
+//     origin: ['http://localhost:3000', 'http://localhost:8000/auth/google'],
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization'],
+//     credentials: true,
+// }));
+// const corsOptions = {
+//     origin: ['http://localhost:3000', 'http://localhost:8000/auth/google'],
+//     methods: ['GET', 'POST', 'OPTIONS'], // Allow these methods
+//     credentials: true, // Allow cookies
+//     allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+// };
+
+// app.options('*', cors(corsOptions)); // Allow preflight requests for all routes
 
 app.use(express.static(path.join(__dirname, 'public')))
 
@@ -99,7 +114,7 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-// setting up our serialize and deserialize methods from passport
+// // setting up our serialize and deserialize methods from passport
 passport.serializeUser((user: any, done) => {
     // calling done method once we get the user from the db
     done(null, user?.google?.id)
@@ -144,48 +159,49 @@ passport.deserializeUser((id, done) => {
 // }))
 
 // setting up our Google Strategy when we get the profile info back from Google
-// passport.use(new GoogleStrategy.Strategy({
-//     // options for the google strategy
-//     callbackURL: '/auth/googleRedirect',
-//     clientID: process.env.GOOGLECLIENTID || "",
-//     clientSecret: process.env.GOOGLECLIENTSECRET || "",
-// }, async (accessToken, refreshToken, profile, done) => {
-//     // passport callback function
-//     const {
-//         id: googleId,
-//         displayName: username,
-//         _json
-//     } = profile
 
-//     const user = {
-//         googleId,
-//         username,
-//         firstName: _json.given_name,
-//         lastName: _json.family_name,
-//         photo: _json.picture,
-//         email: _json.email,
-//     }
+passport.use(new GoogleStrategy.Strategy({
+    // options for the google strategy
+    callbackURL: 'http://localhost:8000/auth/callback/google',
+    clientID: process.env.GOOGLE_CLIENT_ID || "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+}, async (accessToken, refreshToken, profile, done) => {
+    // passport callback function
+    const {
+        id: googleId,
+        displayName: username,
+        _json
+    } = profile
 
-//     const existingUser = await User.findOne({ 'google.id': googleId })
+    const user = {
+        googleId,
+        username,
+        firstName: _json.given_name,
+        lastName: _json.family_name,
+        photo: _json.picture,
+        email: _json.email,
+    }
 
-//     if (existingUser) {
-//         return done(null, existingUser)
-//     }
+    const existingUser = await User.findOne({ 'google.id': googleId })
 
-//     const newUser = new User({
-//         method: 'google',
-//         email: user.email,
-//         firstName: user.firstName,
-//         lastName: user.lastName,
-//         google: {
-//             id: googleId,
-//             token: accessToken
-//         }
-//     })
+    if (existingUser) {
+        return done(null, existingUser)
+    }
 
-//     await newUser.save()
-//     done(null, newUser)
-// }))
+    const newUser = new User({
+        method: 'google',
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        google: {
+            id: googleId,
+            token: accessToken
+        }
+    })
+
+    await newUser.save()
+    done(null, newUser)
+}))
 
 /** Routes go here */
 app.use("/auth", authRoutes)
