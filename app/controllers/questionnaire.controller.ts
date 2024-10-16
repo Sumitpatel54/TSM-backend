@@ -314,6 +314,9 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
       user = user.toObject();
     }
 
+    // Get the total questionnaire count
+    const totalQuestionnaireCount = await Questionnaire.countDocuments();
+
     // Get the user's questionnaire answers
     const questionnaireAnswers: any = user.questionnaireAnswers;
 
@@ -324,6 +327,7 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
         return res.status(200).send({
           status: true,
           data: retrieveQuestionnaireResponse,
+          totalQuestions: totalQuestionnaireCount,
           message: "Questionnaire Record Fetched",
         });
       }
@@ -359,12 +363,14 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
           return res.status(200).send({
             status: true,
             data: nextQuestionData,
+            totalQuestions: totalQuestionnaireCount,
             message: "Next question fetched",
           });
         } else {
           return res.status(200).send({
             status: true,
             data: null,
+            totalQuestions: totalQuestionnaireCount,
             message: "No more questions",
           });
         }
@@ -372,6 +378,7 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
         return res.status(200).send({
           status: true,
           data: null,
+          totalQuestions: totalQuestionnaireCount,
           message: "No more questions",
         });
       }
