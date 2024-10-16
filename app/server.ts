@@ -162,7 +162,7 @@ passport.deserializeUser((id, done) => {
 
 passport.use(new GoogleStrategy.Strategy({
     // options for the google strategy
-    callbackURL: 'http://localhost:8000/auth/callback/google',
+    callbackURL: 'https://tsm-backend-git-main-the-scandinavian-method.vercel.app/auth/callback/google',
     clientID: process.env.GOOGLE_CLIENT_ID || "",
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
 }, async (accessToken, refreshToken, profile, done) => {
