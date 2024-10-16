@@ -238,6 +238,6 @@ httpServer.listen(config.server.port, () => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
 })
 
-// export default app
+export default app
 
 
