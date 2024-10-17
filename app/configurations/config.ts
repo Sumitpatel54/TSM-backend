@@ -37,6 +37,8 @@ const LOCAL_SERVER = {
   host_url: 'http://localhost:3000',
 }
 
+const API_URL = 'https://tsm-prod-agzrkdts8-the-scandinavian-method.vercel.app/'
+
 const JWT = {
   accessTokenPrivateKey: process.env.ACCESS_TOKEN_SECRET || "secret",
   accessTokenExpiresIn: process.env.ACCESS_TOKEN_LIFE,
@@ -106,7 +108,8 @@ const config = {
   redis,
   PROGRESS_QUESTION_LINK,
   LOCAL_SERVER,
-  GOOGLE_OAUTH_CREDENTIALS
+  GOOGLE_OAUTH_CREDENTIALS,
+  API_URL
 }
 
 export default config

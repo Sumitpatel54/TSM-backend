@@ -117,7 +117,7 @@ const updatePosturalProgramWithSet = async (programObj: any, payload: any) => {
 const retrieveReportBlock = async (query: FilterQuery<UserDocument>): Promise<any | null> => {
   try {
     const user: any = await User.findOne(query).exec()
-    console.log(user)
+    // console.log(user)
     if (user) {
       let reportBlock = user.reportBlock
       if (!reportBlock || Object.keys(reportBlock).length === 0) {

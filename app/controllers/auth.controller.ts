@@ -159,7 +159,7 @@ const forgetPassword = async (req: Request, res: Response) => {
       email: process.env.SENDGRID_FROM_EMAIL,
       name: "Cure Migraine"
     }
-    let link = `https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/reset-password/${user.resetPasswordToken}`
+    let link = `${config.API_URL}/reset-password/${user.resetPasswordToken}`
     let html = `
     <p>Hi ${user.firstName},</p>
     <p>No stress! Remembering passwords can be pain in the neck - which for some is a trigger and for some it is a symptom of migraine. Let’s get you back on track so you can continue your journey to a migraine-free life.</p>
@@ -460,11 +460,11 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
       }
 
       // res.status(200).send(`The account has been verified, please Log In`)
-      res.status(301).redirect(`https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login`)
+      res.status(301).redirect(`${config.API_URL}/login`)
     })
   } catch (error: any) {
     // res.status(statusCode).json({ status: false, message: error.message })
-    res.status(301).redirect(`https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login`)
+    res.status(301).redirect(`${config.API_URL}/login`)
   }
 }
 

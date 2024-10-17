@@ -138,14 +138,14 @@ export const sendEmailWhenUserSignsUp = async (user: any, _req: any) => {
     let to = user.email
     let from = `${config.sendGrid.FROM_EMAIL}`
     let html = `
-    <p>Hi ${user.firstName}>
+    <p>Hi ${user.firstName},</p>
     
-    <p>Welcome to The Scandinavian Method! We’re thrilled to have you join our community dedicated to reducing the intensity and frequency of migraines and tension-type headaches.</p>
-    <h2>Here’s what to do next:</h2>
+    <p>Welcome to The Scandinavian Method! We're thrilled to have you join our community dedicated to reducing the intensity and frequency of migraines and tension-type headaches.</p>
+    <h2>Here's what to do next:</h2>
     <ol>
             <li>
                 <strong>Log in to Your Account:</strong> 
-                <a href="https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login">Login Link</a>
+                <a href="${config.API_URL}/login">Login Link</a>
             </li>
             <li>
                 <strong>Explore Your Dashboard:</strong> 
