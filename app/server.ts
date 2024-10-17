@@ -53,22 +53,12 @@ mongoose
     })
 mongoose.Promise = global.Promise
 
-// // Enable CORS on all origins
-app.use(cors())
-// app.use(cors({
-//     origin: ['http://localhost:3000', 'http://localhost:8000/auth/google'],
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//     allowedHeaders: ['Content-Type', 'Authorization'],
-//     credentials: true,
-// }));
-// const corsOptions = {
-//     origin: ['http://localhost:3000', 'http://localhost:8000/auth/google'],
-//     methods: ['GET', 'POST', 'OPTIONS'], // Allow these methods
-//     credentials: true, // Allow cookies
-//     allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-// };
-
-// app.options('*', cors(corsOptions)); // Allow preflight requests for all routes
+app.use(cors({
+    origin: ['http://localhost:3000','http://localhost:8000','https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app','https://tsm-prod-agzrkdts8-the-scandinavian-method.vercel.app'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization','Access-Control-Allow-Origin'],
+    credentials: true,
+}));
 
 app.use(express.static(path.join(__dirname, 'public')))
 
@@ -163,10 +153,12 @@ passport.deserializeUser((id, done) => {
 passport.use(new GoogleStrategy.Strategy({
     // options for the google strategy
     callbackURL: `${config.API_URL}/auth/callback/google`,
+    // callbackURL: `http://localhost:8000/auth/callback/google`,
     clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
     clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
 }, async (accessToken, refreshToken, profile, done) => {
     // passport callback function
+    console.log('passport callback function')
     const {
         id: googleId,
         displayName: username,
@@ -183,6 +175,7 @@ passport.use(new GoogleStrategy.Strategy({
     }
 
     const existingUser = await User.findOne({ 'google.id': googleId })
+    console.log('existingUser ==',existingUser)
 
     if (existingUser) {
         return done(null, existingUser)
@@ -198,6 +191,8 @@ passport.use(new GoogleStrategy.Strategy({
             token: accessToken
         }
     })
+
+    console.log('newUser =',newUser)
 
     await newUser.save()
     done(null, newUser)

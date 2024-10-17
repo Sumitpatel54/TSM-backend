@@ -37,7 +37,7 @@ const LOCAL_SERVER = {
   host_url: 'http://localhost:3000',
 }
 
-const API_URL = 'https://tsm-prod-agzrkdts8-the-scandinavian-method.vercel.app/'
+const API_URL = 'https://tsm-prod-agzrkdts8-the-scandinavian-method.vercel.app'
 
 const JWT = {
   accessTokenPrivateKey: process.env.ACCESS_TOKEN_SECRET || "secret",

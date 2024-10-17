@@ -21,7 +21,9 @@ router.post('/reset-password/:token', AuthController.resetPassword)
 router.post('/facebook', passport.authenticate('facebookToken', { session: false }), AuthController.facebookOAuth)
 router.get('/verify/:token', AuthController.verifyRegistrationToken)
 
-router.get('/callback/google', passport.authenticate('google', { scope: ['profile','email'] }))
+// router.get('/callback/google', passport.authenticate('google', { scope: ['profile','email'] }))
+router.get('/callback/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
+
 // router.get('/callback/google', passport.authenticate('google'), (_req, res) => {
 //     // will redirect once the request has been handled
 //     res.redirect(`http://${process.env.FRONTEND_HOSTNAME}/`)
