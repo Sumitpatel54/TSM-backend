@@ -34,7 +34,8 @@ const SERVER = {
   port: SERVER_PORT
 }
 const LOCAL_SERVER = {
-  host_url: 'http://localhost:3000',
+  // host_url: 'http://localhost:3000',
+  host_url: 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app',
 }
 
 const API_URL = 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app'
