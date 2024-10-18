@@ -31,6 +31,8 @@ router.get('/callback/google',
   AuthController.googleCallback
 );
 
+router.get('/google-user-data', AuthController.getGoogleUserData);
+
 // router.get('/callback/google', passport.authenticate('google', { failureRedirect: '/login' }),
 //   (req: any, res: { redirect: (arg0: string) => void }) => {
 //     let frontendURL = 'http://localhost:3000';
