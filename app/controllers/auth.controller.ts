@@ -653,9 +653,8 @@ const googleCallback = (req: Request, res: Response) => {
   }, 5 * 60 * 1000);
 
   // Redirect to frontend with the temporary token
+  const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
   // const frontendURL = 'http://localhost:3000';
-  const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app'; // Adjust this as needed
-
   res.redirect(`${frontendURL}/home?googleToken=${tempToken}`);
 };
 
