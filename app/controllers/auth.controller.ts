@@ -634,12 +634,14 @@ const tempTokens = new Map();
 
 const googleCallback = (req: Request, res: Response) => {
   const data = req.user as any;
+  console.log('data ====', data)
   if (!data || !data.user || !data.token) {
-    return res.redirect('https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login');
+    return res.redirect('https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/home');
     // return res.redirect('http://localhost:3000/login');
   }
 
   const { user, token } = data;
+  console.log('user data =', data)
 
   // Generate a temporary token
   const tempToken = uuidv4();
