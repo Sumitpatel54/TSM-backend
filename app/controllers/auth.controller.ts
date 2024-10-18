@@ -8,7 +8,8 @@ import { suid } from 'rand-token'
 import validator from 'validator'
 import User from '../models/user.model'
 import passport from 'passport'
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import GoogleStrategy from "passport-google-oauth20"
+// import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 
 // import config from "../configurations/config"
 import { UserDocument } from "../interfaces/user.interface"
@@ -18,6 +19,7 @@ import { generateRefreshToken } from "../services/userToken"
 import commonUtilitie from "../utilities/common"
 import { sendEmail, sendEmailVerification } from "../utils/email.util"
 import config from '../configurations/config'
+import { Session } from 'express-session';
 
 
 
@@ -34,6 +36,11 @@ import config from '../configurations/config'
 
 interface MyUserRequest extends Request {
   user?: any;
+}
+
+// Add this interface at the top of your file
+interface CustomSession extends Session {
+  passport?: { user: { userId: string, token: string } };
 }
 
 /**
@@ -546,4 +553,97 @@ const login = async (req: Request, res: Response) => {
   }
 }
 
-export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail }
+interface GoogleUser {
+  id: string;
+  token: string;
+}
+
+passport.use(new GoogleStrategy.Strategy({
+  callbackURL: `${config.API_URL}/auth/callback/google`,
+  // callbackURL: `http://localhost:8000/auth/callback/google`,
+  clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
+  clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+}, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+  try {
+    const { id: googleId, _json } = profile
+
+    let user: any
+    user = await User.findOne({ 'google.id': googleId })
+
+    if (user) {
+      // Update the access token
+      (user.google as GoogleUser).token = accessToken;
+      await user.save()
+    } else {
+      // Create a new user
+      user = new User({
+        method: 'google',
+        email: _json.email,
+        firstName: _json.given_name,
+        lastName: _json.family_name,
+        google: {
+          id: googleId,
+          token: accessToken
+        },
+        isVerified: true,
+        isActive: true,
+        role: 'patient'
+      })
+      await user.save()
+    }
+
+    // Login successful, write toke, and send back user
+    let token = user.generateJWT()
+
+    // Redirect to frontend with a success parameter
+    const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app'; // Adjust this as needed
+    // const frontendURL = 'http://localhost:3000'; // Adjust this as needed
+    return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` });
+  } catch (error) {
+    return done(error, false);
+  }
+}))
+
+// // setting up our serialize and deserialize methods from passport
+passport.serializeUser((data: any, done) => {
+  // We're now receiving { user, token } instead of just user
+  if (data && data.user && data.user._id) {
+    done(null, { userId: data.user._id, token: data.token })
+  } else {
+    done(new Error('Invalid user data for serialization'), null)
+  }
+})
+
+passport.deserializeUser((serializedData: { userId: string, token: string }, done: (err: any, user: any) => void) => {
+  User.findById(serializedData.userId)
+    .then(user => {
+      if (user) {
+        done(null, { user, token: serializedData.token })
+      } else {
+        done(new Error('User not found'), null)
+      }
+    })
+    .catch(err => {
+      done(err, null)
+    })
+})
+
+const googleCallback = (req: Request, res: Response) => {
+  const data = req.user as any; // This should contain { user, token }
+  if (!data || !data.user || !data.token) {
+    return res.redirect('https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/login');
+    // return res.redirect('http://localhost:3000/login');
+  }
+
+  const { user, token } = data;
+
+  // Encode user and token data
+  const userData = Buffer.from(JSON.stringify({ user, token })).toString('base64');
+
+  // Redirect to frontend with encoded data
+  const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
+  // const frontendURL = 'http://localhost:3000';
+  res.redirect(`${frontendURL}/home?googleData=${userData}`);
+};
+
+export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail, googleCallback }

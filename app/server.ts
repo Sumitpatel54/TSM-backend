@@ -13,7 +13,7 @@ import session from "express-session"
 import mongoose from "mongoose"
 import passport from 'passport'
 // import facebookTokenStrategy from 'passport-facebook-token'
-import GoogleStrategy from "passport-google-oauth20"
+// import GoogleStrategy from "passport-google-oauth20"
 
 import config from "./configurations/config"
 import logging from "./configurations/logging"
@@ -54,9 +54,9 @@ mongoose
 mongoose.Promise = global.Promise
 
 app.use(cors({
-    origin: ['http://localhost:3000','http://localhost:8000','https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app'],
+    origin: ['http://localhost:3000', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization','Access-Control-Allow-Origin'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
     credentials: true,
 }));
 
@@ -104,19 +104,7 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-// // setting up our serialize and deserialize methods from passport
-passport.serializeUser((user: any, done) => {
-    // calling done method once we get the user from the db
-    done(null, user?.google?.id)
-})
 
-passport.deserializeUser((id, done) => {
-    User.findOne({ '_id': id })
-        .then(currentUser => {
-            // calling done once we've found the user
-            done(null, currentUser)
-        })
-})
 
 // passport.use('facebookToken', new facebookTokenStrategy({
 //     clientID: process.env.FACEBOOK_APP_ID || "",
@@ -150,53 +138,52 @@ passport.deserializeUser((id, done) => {
 
 // setting up our Google Strategy when we get the profile info back from Google
 
-passport.use(new GoogleStrategy.Strategy({
-    // options for the google strategy
-    callbackURL: `${config.API_URL}/auth/callback/google`,
-    // callbackURL: `http://localhost:8000/auth/callback/google`,
-    clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
-    clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
-}, async (accessToken, refreshToken, profile, done) => {
-    // passport callback function
-    console.log('passport callback function')
-    const {
-        id: googleId,
-        displayName: username,
-        _json
-    } = profile
+// interface GoogleUser {
+//     id: string;
+//     token: string;
+// }
 
-    const user = {
-        googleId,
-        username,
-        firstName: _json.given_name,
-        lastName: _json.family_name,
-        photo: _json.picture,
-        email: _json.email,
-    }
+// passport.use(new GoogleStrategy.Strategy({
+//     // options for the google strategy
+//     callbackURL: `${config.API_URL}/auth/callback/google`,
+//     // callbackURL: `http://localhost:8000/auth/callback/google`,
+//     clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
+//     clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+// }, async (accessToken, refreshToken, profile, done) => {
+//     try {
+//         const { id: googleId, _json } = profile
 
-    const existingUser = await User.findOne({ 'google.id': googleId })
-    console.log('existingUser ==',existingUser)
+//         let user = await User.findOne({ 'google.id': googleId })
 
-    if (existingUser) {
-        return done(null, existingUser)
-    }
+//         if (user) {
+//             // Update the access token
+//             (user.google as GoogleUser).token = accessToken;
+//             await user.save()
+//         } else {
+//             // Create a new user
+//             user = new User({
+//                 method: 'google',
+//                 email: _json.email,
+//                 firstName: _json.given_name,
+//                 lastName: _json.family_name,
+//                 google: {
+//                     id: googleId,
+//                     token: accessToken
+//                 },
+//                 isVerified: true,
+//                 isActive: true
+//             })
+//             await user.save()
+//         }
 
-    const newUser = new User({
-        method: 'google',
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        google: {
-            id: googleId,
-            token: accessToken
-        }
-    })
+//         // Login successful, write toke, and send back user
+//         let token = user.generateJWT()
 
-    console.log('newUser =',newUser)
-
-    await newUser.save()
-    done(null, newUser)
-}))
+//         return done(null, user)
+//     } catch (error) {
+//         return done(error, false)
+//     }
+// }))
 
 /** Routes go here */
 app.use("/auth", authRoutes)
@@ -234,5 +221,7 @@ httpServer.listen(config.server.port, () => {
 })
 
 export default app
+
+
 
 
