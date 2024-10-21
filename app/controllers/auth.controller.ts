@@ -666,13 +666,13 @@ const getGoogleUserData = (req: Request, res: Response) => {
   const { googleToken } = req.query;
   console.log('Received googleToken:', googleToken);
   
-  // if (!googleToken || typeof googleToken !== 'string') {
-  //   console.log('Invalid googleToken');
-  //   return res.status(400).json({ error: 'Invalid token' });
-  // }
+  if (!googleToken || typeof googleToken !== 'string') {
+    console.log('Invalid googleToken');
+    return res.status(400).json({ error: 'Invalid token' });
+  }
 
   const userData = tempTokens.get(googleToken);
-  console.log('Retrieved userData:', userData ? 'Found' : 'Not found');
+  console.log('Retrieved userData:', userData );
   
   if (!userData) {
     return res.status(404).json({ error: 'Token not found or expired' });
