@@ -21,6 +21,7 @@ import { sendEmail, sendEmailVerification } from "../utils/email.util"
 import config from '../configurations/config'
 import { Session } from 'express-session';
 import { v4 as uuidv4 } from 'uuid';
+import TempToken from '../models/tempToken.model'; // You'll need to create this model
 
 
 
@@ -632,7 +633,8 @@ passport.deserializeUser((serializedData: { userId: string, token: string }, don
 // Add this at the top of your file
 const tempTokens = new Map();
 
-const googleCallback = (req: Request, res: Response) => {
+const googleCallback = async (req: Request, res: Response) => {
+  console.log('Entering googleCallback function');
   const data = req.user as any;
   console.log('Google callback data:', data);
   if (!data || !data.user || !data.token) {
@@ -642,27 +644,34 @@ const googleCallback = (req: Request, res: Response) => {
 
   const { user, token } = data;
 
-  // Generate a temporary token
-  const tempToken = uuidv4();
-  console.log('Generated temp token:', tempToken);
-  
-  // Store the user data and token with the temporary token
-  tempTokens.set(tempToken, { user, token });
+  try {
+    // Generate a temporary token
+    const tempToken = uuidv4();
+    console.log('Generated temp token:', tempToken);
+    
+    // Store the user data and token in the database
+    const newTempToken = new TempToken({
+      token: tempToken,
+      userData: { user, token },
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes from now
+    });
+    await newTempToken.save();
+    console.log('Stored user data with temp token:', tempToken);
 
-  // Set an expiration for the temporary token (increased to 15 minutes)
-  setTimeout(() => {
-    console.log('Deleting temp token:', tempToken);
-    tempTokens.delete(tempToken);
-  }, 15 * 60 * 1000);
-
-  // Redirect to frontend with the temporary token
-  const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
-  // const frontendURL = 'http://localhost:3000';
-  res.redirect(`${frontendURL}/home?googleToken=${tempToken}`);
+    // Redirect to frontend with the temporary token
+    // const frontendURL = 'http://localhost:3000';
+    const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
+    const redirectURL = `${frontendURL}/home?googleToken=${tempToken}`;
+    console.log('Redirecting to:', redirectURL);
+    res.redirect(redirectURL);
+  } catch (error) {
+    console.error('Error in googleCallback:', error);
+    res.redirect('https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/home?error=server_error');
+  }
 };
 
-// Add a new endpoint to fetch the user data
-const getGoogleUserData = (req: Request, res: Response) => {
+const getGoogleUserData = async (req: Request, res: Response) => {
+  console.log('Entering getGoogleUserData function');
   const { googleToken } = req.query;
   console.log('Received googleToken:', googleToken);
   
@@ -671,18 +680,35 @@ const getGoogleUserData = (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid token' });
   }
 
-  const userData = tempTokens.get(googleToken);
-  console.log('Retrieved userData:', userData );
-  
-  if (!userData) {
-    return res.status(404).json({ error: 'Token not found or expired' });
+  try {
+    console.log('Attempting to retrieve userData for token:', googleToken);
+    const tempTokenDoc = await TempToken.findOne({ token: googleToken });
+    
+    if (!tempTokenDoc) {
+      console.log('Token not found or expired:', googleToken);
+      return res.status(404).json({ error: 'Token not found or expired' });
+    }
+
+    const userData = tempTokenDoc.userData;
+    console.log('Retrieved userData:', userData);
+
+    // Check if userData has the expected structure
+    if (!userData.user || !userData.token) {
+      console.log('Invalid userData structure:', userData);
+      return res.status(500).json({ error: 'Invalid user data structure' });
+    }
+
+    // Delete the temporary token after use
+    await TempToken.deleteOne({ token: googleToken });
+    console.log('Deleted temp token after use:', googleToken);
+
+    console.log('Successfully retrieved and returning user data');
+    res.json(userData);
+  } catch (error) {
+    console.error('Error retrieving Google user data:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  // Delete the temporary token after use
-  tempTokens.delete(googleToken);
-  console.log('Deleted temp token after use:', googleToken);
-
-  res.json(userData);
 };
 
 export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail, googleCallback, getGoogleUserData }
+
