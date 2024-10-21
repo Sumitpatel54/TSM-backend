@@ -634,25 +634,26 @@ const tempTokens = new Map();
 
 const googleCallback = (req: Request, res: Response) => {
   const data = req.user as any;
-  console.log('data ====', data)
+  console.log('Google callback data:', data);
   if (!data || !data.user || !data.token) {
-    return res.redirect('https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/home');
-    // return res.redirect('http://localhost:3000/login');
+    console.log('Invalid Google callback data');
+    return res.redirect('https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app/home?error=invalid_data');
   }
 
   const { user, token } = data;
-  console.log('user data =', data)
 
   // Generate a temporary token
   const tempToken = uuidv4();
+  console.log('Generated temp token:', tempToken);
   
   // Store the user data and token with the temporary token
   tempTokens.set(tempToken, { user, token });
 
-  // Set an expiration for the temporary token (e.g., 5 minutes)
+  // Set an expiration for the temporary token (increased to 15 minutes)
   setTimeout(() => {
+    console.log('Deleting temp token:', tempToken);
     tempTokens.delete(tempToken);
-  }, 5 * 60 * 1000);
+  }, 15 * 60 * 1000);
 
   // Redirect to frontend with the temporary token
   const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
@@ -663,12 +664,15 @@ const googleCallback = (req: Request, res: Response) => {
 // Add a new endpoint to fetch the user data
 const getGoogleUserData = (req: Request, res: Response) => {
   const { googleToken } = req.query;
+  console.log('Received googleToken:', googleToken);
   
   if (!googleToken || typeof googleToken !== 'string') {
+    console.log('Invalid googleToken');
     return res.status(400).json({ error: 'Invalid token' });
   }
 
   const userData = tempTokens.get(googleToken);
+  console.log('Retrieved userData:', userData ? 'Found' : 'Not found');
   
   if (!userData) {
     return res.status(404).json({ error: 'Token not found or expired' });
@@ -676,6 +680,7 @@ const getGoogleUserData = (req: Request, res: Response) => {
 
   // Delete the temporary token after use
   tempTokens.delete(googleToken);
+  console.log('Deleted temp token after use:', googleToken);
 
   res.json(userData);
 };
