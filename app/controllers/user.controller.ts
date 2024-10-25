@@ -3,6 +3,7 @@
 import { Request, Response } from "express"
 import UserService from "../services/user.service"
 import questionnaireService from "../services/questionnaire.service"
+import DailyData from "../models/daily-data.model"  
 
 /**
  * @summary - Fetch a user
@@ -127,4 +128,101 @@ const apiUpdateUser = async (req: Request, res: Response) => {
     }
 }
 
-export default { apiGetUser, apiUpdateUser }
+const fetchDailyExercises = async (req: Request, res: Response) => {
+    try {
+        const today = new Date().toDateString();
+        const userId = (req as any).user.id;
+        
+        const dailyData = await DailyData.findOne({ userId, date: today });
+        
+        if (!dailyData || !dailyData.exercises) {
+            return res.status(404).json({ message: "No exercises found for today" });
+        }
+
+        res.json(dailyData.exercises);
+    } catch (error) {
+        console.error('Error fetching daily exercises:', error);
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
+const fetchDailyNutrition = async (req: Request, res: Response) => {
+    try {
+        const today = new Date().toDateString();
+        const userId = (req as any).user.id;
+        
+        const dailyData = await DailyData.findOne({ userId, date: today });
+        
+        if (!dailyData || !dailyData.nutrition) {
+            return res.status(404).json({ message: "No nutrition data found for today" });
+        }
+
+        res.json(dailyData.nutrition);
+    } catch (error) {
+        console.error('Error fetching daily nutrition:', error);
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
+const storeDailyExercises = async (req: Request, res: Response) => {
+    try {
+        const today = new Date().toDateString();
+        const userId = (req as any).user.id;
+        const exercises = req.body;
+
+        let dailyData = await DailyData.findOne({ userId, date: today });
+
+        if (dailyData) {
+            dailyData.exercises = exercises;
+        } else {
+            dailyData = new DailyData({
+                userId,
+                date: today,
+                exercises
+            });
+        }
+
+        await dailyData.save();
+
+        res.json({ message: "Daily exercises stored successfully" });
+    } catch (error) {
+        console.error('Error storing daily exercises:', error);
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
+const storeDailyNutrition = async (req: Request, res: Response) => {
+    try {
+        const today = new Date().toDateString();
+        const userId = (req as any).user.id;
+        const nutrition = req.body;
+
+        let dailyData = await DailyData.findOne({ userId, date: today });
+
+        if (dailyData) {
+            dailyData.nutrition = nutrition;
+        } else {
+            dailyData = new DailyData({
+                userId,
+                date: today,
+                nutrition
+            });
+        }
+
+        await dailyData.save();
+
+        res.json({ message: "Daily nutrition stored successfully" });
+    } catch (error) {
+        console.error('Error storing daily nutrition:', error);
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
+export default { 
+    apiGetUser, 
+    apiUpdateUser, 
+    fetchDailyExercises, 
+    fetchDailyNutrition, 
+    storeDailyExercises, 
+    storeDailyNutrition 
+}
