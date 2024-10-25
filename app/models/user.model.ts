@@ -112,7 +112,8 @@ const userSchema = new mongoose.Schema(
     questionnaireAnswersAfter90Days: {},
     stripeCustomerId: {
       type: String
-    }
+    },
+    completedSections: { type: Number, default: 0 },
   },
   {
     timestamps: true

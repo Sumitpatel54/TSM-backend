@@ -22,4 +22,8 @@ router.get("/generateReportBlock", requireUserToLogin, QuestionnaireContorller.a
 router.post("/answer/:questionId", requireUserToLogin, QuestionnaireContorller.apiProvideAnswers as any)
 router.post("/answer", requireUserToLogin, QuestionnaireContorller.apiProgressProvideAnswers)
 
+// New routes for onboarding progress
+router.get("/onboardingProgress", requireUserToLogin, QuestionnaireContorller.apiGetOnboardingProgress as any)
+router.post("/onboardingProgress", requireUserToLogin, QuestionnaireContorller.apiUpdateOnboardingProgress as any)
+
 export = router

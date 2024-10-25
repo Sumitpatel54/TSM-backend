@@ -28,5 +28,6 @@ export interface UserDocument extends mongoose.Document {
   reportBlockAfter30Days: Object
   questionnaireAnswersAfter60Days: Object
   reportBlockAfter60Days: Object
+  completedSections?: number
 }
 

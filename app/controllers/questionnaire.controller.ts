@@ -767,6 +767,104 @@ const apiGenerateReportBlock = async (req: Request, res: Response) => {
   }
 }
 
+const apiGetOnboardingProgress = async (req: Request, res: Response) => {
+  try {
+    const userId: any = req.user?.id;
+
+    console.log('userId =', userId)
+    
+    if (!userId) {
+      return res.status(HttpStatusCode.UNAUTHORIZED).send({
+        status: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    const user = await UserService.findUser({ _id: new mongoose.Types.ObjectId(userId) });
+
+    if (!user) {
+      return res.status(HttpStatusCode.NOT_FOUND).send({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    const totalQuestions = await QuestionnaireService.getTotalQuestionCount();
+    const answeredQuestions = Object.keys(user.questionnaireAnswers || {}).length;
+    const progress = (answeredQuestions / totalQuestions) * 100;
+
+    return res.status(HttpStatusCode.OK).send({
+      status: true,
+      data: {
+        currentQuestionIndex: answeredQuestions,
+        totalQuestions: totalQuestions,
+        progress: Math.round(progress),
+        completedSections: user.completedSections || 0,
+      },
+      message: "Onboarding progress fetched successfully",
+    });
+  } catch (error: any) {
+    return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).send({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+const apiUpdateOnboardingProgress = async (req: Request, res: Response) => {
+  try {
+    const userId: any = req.user?.id;
+    const { currentQuestionIndex, completedSections } = req.body;
+
+    if (!userId) {
+      return res.status(HttpStatusCode.UNAUTHORIZED).send({
+        status: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    if (typeof currentQuestionIndex !== 'number' || typeof completedSections !== 'number') {
+      return res.status(HttpStatusCode.BAD_REQUEST).send({
+        status: false,
+        message: "Invalid input data",
+      });
+    }
+
+    const updatedUser = await UserService.updateUser(userId, {
+      $set: { 
+        currentQuestionIndex: currentQuestionIndex,
+        completedSections: completedSections,
+      }
+    });
+
+    if (!updatedUser) {
+      return res.status(HttpStatusCode.NOT_FOUND).send({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    const totalQuestions = await QuestionnaireService.getTotalQuestionCount();
+    const progress = (currentQuestionIndex / totalQuestions) * 100;
+
+    return res.status(HttpStatusCode.OK).send({
+      status: true,
+      data: {
+        currentQuestionIndex: currentQuestionIndex,
+        totalQuestions: totalQuestions,
+        progress: Math.round(progress),
+        completedSections: completedSections,
+      },
+      message: "Onboarding progress updated successfully",
+    });
+  } catch (error: any) {
+    return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).send({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
 export default {
   apiCreateQuestionnaire,
   apiRetrieveQuestionnaire,
@@ -780,4 +878,6 @@ export default {
   searchQuestionnaires,
   apiGenerateReportBlock,
   apiGenerateTemplate,
+  apiGetOnboardingProgress,
+  apiUpdateOnboardingProgress,
 }
