@@ -142,7 +142,9 @@ const fetchDailyExercises = async (req: Request, res: Response) => {
 
         if (!dailyData || !dailyData.exercises) {
             return res.status(404).json({
+                success: false,
                 message: "No exercises found for today",
+                data: []
             });
         }
 
@@ -169,7 +171,11 @@ const fetchDailyNutrition = async (req: Request, res: Response) => {
         const dailyData = await DailyData.findOne({ userId: new mongoose.Types.ObjectId(userId), date: today });
 
         if (!dailyData || !dailyData.nutrition) {
-            return res.status(404).json({ message: "No nutrition data found for today" });
+            return res.status(404).json({
+                success: false,
+                message: "No nutrition data found for today",
+                data: []
+            });
         }
 
         res.json({
