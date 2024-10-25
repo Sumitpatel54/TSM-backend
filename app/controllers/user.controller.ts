@@ -3,7 +3,7 @@
 import { Request, Response } from "express"
 import UserService from "../services/user.service"
 import questionnaireService from "../services/questionnaire.service"
-import DailyData from "../models/daily-data.model"  
+import DailyData from "../models/daily-data.model"
 import mongoose from "mongoose"
 
 /**
@@ -72,9 +72,9 @@ const apiGetUser = async (req: Request, res: Response) => {
         const userId: any = req.params.id
         // get user
         const user: any = await UserService.findUser({ _id: userId })
-        
-         // Update user BMI data if available
-         try {
+
+        // Update user BMI data if available
+        try {
             await updateUserBMIData(user);
         } catch (error: any) {
             console.warn("Failed to update user BMI data:", error.message);
@@ -133,19 +133,24 @@ const fetchDailyExercises = async (req: Request, res: Response) => {
     try {
         const today = new Date().toDateString();
         const userId: any = req.params.id
-        console.log('User ID:', userId);
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: "Invalid user ID" });
         }
 
         const dailyData = await DailyData.findOne({ userId: new mongoose.Types.ObjectId(userId), date: today });
-        
+
         if (!dailyData || !dailyData.exercises) {
-            return res.status(404).json({ message: "No exercises found for today" });
+            return res.status(404).json({
+                message: "No exercises found for today",
+            });
         }
 
-        res.json(dailyData.exercises);
+        // res.json(dailyData.exercises);
+        res.json({
+            success: true,
+            data: dailyData.exercises
+        });
     } catch (error) {
         console.error('Error fetching daily exercises:', error);
         res.status(500).json({ message: "Server error", error: (error as Error).message });
@@ -156,19 +161,21 @@ const fetchDailyNutrition = async (req: Request, res: Response) => {
     try {
         const today = new Date().toDateString();
         const userId: any = req.params.id
-        console.log('User ID:', userId);
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: "Invalid user ID" });
         }
 
         const dailyData = await DailyData.findOne({ userId: new mongoose.Types.ObjectId(userId), date: today });
-        
+
         if (!dailyData || !dailyData.nutrition) {
             return res.status(404).json({ message: "No nutrition data found for today" });
         }
 
-        res.json(dailyData.nutrition);
+        res.json({
+            success: true,
+            data: dailyData.nutrition
+        });
     } catch (error) {
         console.error('Error fetching daily nutrition:', error);
         res.status(500).json({ message: "Server error", error: (error as Error).message });
@@ -229,11 +236,11 @@ const storeDailyNutrition = async (req: Request, res: Response) => {
     }
 }
 
-export default { 
-    apiGetUser, 
-    apiUpdateUser, 
-    fetchDailyExercises, 
-    fetchDailyNutrition, 
-    storeDailyExercises, 
-    storeDailyNutrition 
+export default {
+    apiGetUser,
+    apiUpdateUser,
+    fetchDailyExercises,
+    fetchDailyNutrition,
+    storeDailyExercises,
+    storeDailyNutrition
 }
