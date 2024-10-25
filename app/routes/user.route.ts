@@ -12,8 +12,8 @@ router.get("/:id", UserController.apiGetUser)
 router.put("/:id", requireUserToLogin, UserController.apiUpdateUser)
 
 // New routes for daily exercises and nutrition
-router.get('/dailyExercises', requireUserToLogin, UserController.fetchDailyExercises)
-router.get('/dailyNutrition', requireUserToLogin, UserController.fetchDailyNutrition)
+router.get('/dailyExercises/:id', requireUserToLogin, UserController.fetchDailyExercises)
+router.get('/dailyNutrition/:id', requireUserToLogin, UserController.fetchDailyNutrition)
 router.post('/storeDailyExercises', requireUserToLogin, UserController.storeDailyExercises)
 router.post('/storeDailyNutrition', requireUserToLogin, UserController.storeDailyNutrition)
 
