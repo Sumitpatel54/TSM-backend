@@ -770,8 +770,6 @@ const apiGenerateReportBlock = async (req: Request, res: Response) => {
 const apiGetOnboardingProgress = async (req: Request, res: Response) => {
   try {
     const userId: any = req.user?.id;
-
-    console.log('userId =', userId)
     
     if (!userId) {
       return res.status(HttpStatusCode.UNAUTHORIZED).send({
