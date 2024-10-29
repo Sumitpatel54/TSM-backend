@@ -164,7 +164,8 @@ const searchMeals = async (req: Request, res: Response) => {
     const categoryId: any = req.query.categoryId
     const searchString: any = req.query.searchString
     const dietType:any = req.query.dietType
-    const mealType: any = req.query.mealType ? Number(req.query.mealType) : ""
+    const mealType: any = req.query.mealType
+    // const mealType: any = req.query.mealType ? Number(req.query.mealType) : ""
     const sortField: any = req.query.sortField
     let sortOrder: any = req.query.sortOrder || "asc"
 
@@ -181,7 +182,7 @@ const searchMeals = async (req: Request, res: Response) => {
     // manage searh filters
     const obj: any = {}
     if (categoryId) obj.categoryId = categoryId
-    if (mealType) obj.meal = mealType
+    if (mealType) obj.mealType = mealType
     if (dietType) obj.dietType = dietType
     if (categoryId || mealType || dietType) match["$match"] = obj
 
