@@ -40,7 +40,8 @@ const requireUserToLogin = (req: any, res: any, next: any) => {
         req.user = payload
         next()
     } catch (error) {
-        return res.status(401).json({ status: false, message: "Invalid Token!" })
+        return res.status(401).json({ status: false })
+        // return res.status(401).json({ status: false, message: "Invalid Token!" })
     }
 }
 
