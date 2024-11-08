@@ -5,6 +5,7 @@ import mongoose from "mongoose"
 
 import ExerciseService from "../services/exercise.service"
 import CommonFunctions from "../utilities/common"
+import constants from "../utilities/directoryPath"
 
 const apiCreateExercise = async (req: Request, res: Response) => {
   try {
@@ -137,10 +138,15 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
 
     if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
       // @ts-ignore
-      article.video = await CommonFunctions.getUploadURL(file)
-    }
-    else if (file === null || file === "null") {
+      // article.video = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEOS)
+      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEO)
+
+      article.video = videoUrls[0]
+    } else if (file === null || file === "null") {
       article.video = null
+    } else if (Array.isArray(file)) {
+      // If file is an array, take the first element or handle accordingly
+      article.video = file[0] // or handle as needed
     }
     if (title) {
       article.title = title
@@ -167,7 +173,8 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
   } catch (error: any) {
     return res.status(statusCode).send({
       status: false,
-      message: error.message
+      message: error.message,
+      data:[]
     })
   }
 }
@@ -194,7 +201,9 @@ const apiUpdateExerciseList = async (req: Request, res: Response) => {
 
     if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
       // @ts-ignore
-      article.video = await CommonFunctions.getUploadURL(file)
+      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEO)
+
+      article.video = videoUrls[0]
     }
     else if (file === null || file === "null") {
       article.video = null
