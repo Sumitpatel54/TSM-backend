@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 import { Request, Response } from 'express'
 import HttpStatusCode from "http-status-codes"
 import mongoose from "mongoose"
@@ -115,6 +116,28 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
 
     if (day && !Array.isArray(day)) {
       throw new Error("'day' has to be an array")
+    }
+
+    // Add file size validation
+    if (file && !CommonFunctions.stringIsAValidUrl(file)) {
+      const maxSize = 100 * 1024 * 1024; // 100MB limit
+      if (Array.isArray(file)) {
+        for (const f of file) {
+          if (f.size > maxSize) {
+            return res.status(413).send({
+              status: false,
+              message: "Video file size should be less than 100MB",
+              data: []
+            });
+          }
+        }
+      } else if (file.size > maxSize) {
+        return res.status(413).send({
+          status: false,
+          message: "Video file size should be less than 100MB",
+          data: []
+        });
+      }
     }
 
     // retrieve exercise
