@@ -17,7 +17,6 @@ import passport from 'passport'
 
 import config from "./configurations/config"
 import logging from "./configurations/logging"
-import fileUpload from 'express-fileupload';
 // import SupportedOriginModel from "./models/supportedOrigin.model"
 import User from './models/user.model'
 import adminRoutes from "./routes/admin.route"
@@ -57,7 +56,7 @@ mongoose.Promise = global.Promise
 app.use(cors({
     origin: ['http://localhost:3000', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
+    allowedHeaders: ['Content-Type', 'Authorization','*'],
     credentials: true,
 }));
 
@@ -205,22 +204,6 @@ app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 app.use('/stats', statsRoutes)
 app.use('/user', userRoutes)
 
-
-app.use(fileUpload({
-    limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB max file size
-        files: 5 // Maximum number of files
-    },
-    abortOnLimit: true,
-    useTempFiles: true,
-    tempFileDir: '/tmp/',
-    debug: true
-}));
-
-
-// Increase payload size limit for the entire application
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
 // simple route
 app.get("/", (_req: Request, res: Response) => {
     res.json({ message: "Welcome to Scandinavian-Backend Application." })

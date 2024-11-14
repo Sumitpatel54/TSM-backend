@@ -68,38 +68,21 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
   try {
     const filesArray = Array.isArray(files) ? files : [files];
     
-    // Add file size and type validation
-    const maxSize = 100 * 1024 * 1024; // 100MB
-    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo']; // Add more types as needed
-
-    for (const file of filesArray) {
-      if (file.size > maxSize) {
-        throw new Error('File size exceeds 100MB limit');
-      }
-      
-      if (!allowedTypes.includes(file.mimetype)) {
-        throw new Error('Invalid file type. Only video files are allowed.');
-      }
-    }
-
     const s3 = new AWS.S3({
       accessKeyId: process.env.ACCESS_KEY_ID,
-      secretAccessKey: process.env.SECRET_ACCESS_KEY,
-      // Add configuration for handling large files
-      httpOptions: {
-        timeout: 300000, // 5 minutes
-        connectTimeout: 5000 // 5 seconds
-      }
+      secretAccessKey: process.env.SECRET_ACCESS_KEY
     });
 
-    // Configure multipart upload
+    AWS.config.update({ region: 'us-east-1' });
+
     const uploadPromises = filesArray.map(async (file: any) => {
       const buffer: any = file.data;
-      const fileMime: any = file.name || file.originalname;
+      const fileMime: any = file.name || file.originalname; // Adjust based on your file object structure
       const arr = fileMime.split(".");
       const fileExt = arr[arr.length - 1];
+      const hash = uuidv4();
       const now = Math.round(+new Date() / 1000);
-      const filePath = dirName ? `${dirName}/` : '';
+      const filePath = dirName ? `${dirName}/` : ''; // Include directory name in file path if provided
       const fileName = `${now}.${fileExt}`;
       const fileFullName = `${filePath}${fileName}`;
 
@@ -107,31 +90,13 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
         Bucket: process.env.BUCKET as string,
         Key: fileFullName,
         Body: buffer,
-        ContentType: file.mimetype,
-        // Enable multipart upload for large files
-        ServerSideEncryption: 'AES256'
       };
 
-      // Use multipart upload for large files
-      if (buffer.length > 5 * 1024 * 1024) { // 5MB threshold
-        return new Promise((resolve, reject) => {
-          const upload = s3.upload(s3Params);
-          upload.on('httpUploadProgress', (progress) => {
-            console.log(`Progress: ${progress.loaded}/${progress.total}`);
-          });
-          upload.send((err, data) => {
-            if (err) reject(err);
-            else resolve(`https://${process.env.BUCKET}.s3.amazonaws.com/${fileFullName}`);
-          });
-        });
-      }
-
-      // Use regular upload for smaller files
       await s3.upload(s3Params).promise();
       return `https://${process.env.BUCKET}.s3.amazonaws.com/${fileFullName}`;
     });
 
-    const urls: any = await Promise.all(uploadPromises);
+    const urls:any = await Promise.all(uploadPromises);
     return urls;
   } catch (error) {
     console.error("Error in getUploadURL:", error);
