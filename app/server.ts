@@ -5,6 +5,7 @@ import http from "http"
 import path from "path"
 
 import bodyParser from "body-parser"
+import dotenv from 'dotenv';
 // import cookieSession from "cookie-session"
 import cors from "cors"
 import express, { Request, Response } from "express"
@@ -38,6 +39,7 @@ import userRoutes from "./routes/user.route"
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
 
 
+dotenv.config();
 const NAMESPACE = "Scandinavian Server"
 const app = express()
 
@@ -214,9 +216,10 @@ app.get("/", (_req: Request, res: Response) => {
 //app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 
 const httpServer = http.createServer(app)
-// const port = 10000;
+const PORT = process.env.PORT || 8000;
 
-httpServer.listen(config.server.port, () => {
+
+httpServer.listen(PORT, () => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
 })
 
