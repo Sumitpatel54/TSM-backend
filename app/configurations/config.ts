@@ -38,8 +38,7 @@ const LOCAL_SERVER = {
   host_url: 'https://tsm-web.vercel.app',
 }
 
-const API_URL = 'http://localhost:8000'
-// const API_URL = 'http://ec2-13-61-69-144.eu-north-1.compute.amazonaws.com:8000'
+const API_URL = 'http://ec2-13-61-69-144.eu-north-1.compute.amazonaws.com:8000'
 // const API_URL = 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app'
 
 const JWT = {
