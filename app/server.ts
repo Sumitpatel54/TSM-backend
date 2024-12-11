@@ -56,7 +56,7 @@ mongoose
 mongoose.Promise = global.Promise
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://tsm-web.vercel.app', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app', 'https://client.curemigraine.org'],
+    origin: ['http://localhost:3000','https://tsm-prod.vercel.app', 'https://tsm-web.vercel.app', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app', 'https://client.curemigraine.org'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', '*'],
     credentials: true,
