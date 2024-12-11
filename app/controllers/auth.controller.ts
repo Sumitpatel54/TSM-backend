@@ -599,7 +599,8 @@ passport.use(new GoogleStrategy.Strategy({
 
     // Redirect to frontend with a success parameter
     // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app'; // Adjust this as needed
-    const frontendURL = 'https://tsm-web.vercel.app'; // Adjust this as needed
+    const frontendURL = 'https://client.curemigraine.org'; // Adjust this as needed
+    // const frontendURL = 'https://tsm-web.vercel.app'; // Adjust this as needed
     return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` });
   } catch (error) {
     return done(error, false);
@@ -639,7 +640,7 @@ const googleCallback = async (req: Request, res: Response) => {
   console.log('Google callback data:', data);
   if (!data || !data.user || !data.token) {
     console.log('Invalid Google callback data');
-    return res.redirect('https://tsm-web.vercel.app/home?error=invalid_data');
+    return res.redirect('https://client.curemigraine.org/home?error=invalid_data');
   }
 
   const { user, token } = data;
@@ -661,13 +662,13 @@ const googleCallback = async (req: Request, res: Response) => {
     // Redirect to frontend with the temporary token
     // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
     // const frontendURL = 'http://13.61.69.144:8000/';
-    const frontendURL = 'https://tsm-web.vercel.app';
+    const frontendURL = 'https://client.curemigraine.org';
     const redirectURL = `${frontendURL}/home?googleToken=${tempToken}`;
     console.log('Redirecting to:', redirectURL);
     res.redirect(redirectURL);
   } catch (error) {
     console.error('Error in googleCallback:', error);
-    res.redirect('https://tsm-web.vercel.app/home?error=server_error');
+    res.redirect('https://client.curemigraine.org/home?error=server_error');
   }
 };
 
