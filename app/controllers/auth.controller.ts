@@ -598,8 +598,8 @@ passport.use(new GoogleStrategy.Strategy({
     let token = user.generateJWT()
 
     // Redirect to frontend with a success parameter
+    // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app'; // Adjust this as needed
     const frontendURL = 'https://tsm-web.vercel.app'; // Adjust this as needed
-    // const frontendURL = 'http://localhost:8000'; // Adjust this as needed
     return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` });
   } catch (error) {
     return done(error, false);
@@ -659,6 +659,7 @@ const googleCallback = async (req: Request, res: Response) => {
     console.log('Stored user data with temp token:', tempToken);
 
     // Redirect to frontend with the temporary token
+    // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
     // const frontendURL = 'http://13.61.69.144:8000/';
     const frontendURL = 'https://tsm-web.vercel.app';
     const redirectURL = `${frontendURL}/home?googleToken=${tempToken}`;
