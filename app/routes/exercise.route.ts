@@ -30,4 +30,6 @@ router.post("/tag/:id", verifyToken as any, routeAccess(onlyAdminPermission) as 
 router.put("/tag/:id/details/:tagId", verifyToken as any, routeAccess(onlyAdminPermission) as any, ExerciseContorller.apiUpdateTag as any)
 router.delete("/tag/:id/details/:tagId", verifyToken as any, routeAccess(onlyAdminPermission) as any, ExerciseContorller.apiDeleteTag as any)
 
+router.get("/presigned-url", verifyToken as any, routeAccess(onlyAdminPermission) as any, ExerciseContorller.apiGetPresignedUrl as any)
+
 export = router

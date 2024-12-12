@@ -1,3 +1,4 @@
+/* eslint-disable no-trailing-spaces */
 /* eslint-disable semi */
 import { Request, Response } from 'express'
 import HttpStatusCode from "http-status-codes"
@@ -161,16 +162,12 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
     const article: any = {}
 
     if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
-      // @ts-ignore
-      // article.video = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEOS)
-      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEO)
-
+      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEOS)
       article.video = videoUrls[0]
     } else if (file === null || file === "null") {
       article.video = null
     } else if (Array.isArray(file)) {
-      // If file is an array, take the first element or handle accordingly
-      article.video = file[0] // or handle as needed
+      article.video = file[0]
     }
     if (title) {
       article.title = title
@@ -202,6 +199,53 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
     })
   }
 }
+
+
+const apiGetPresignedUrl = async (req: Request, res: Response) => {
+  try {
+    const fileName = req.query.fileName as string;
+    const fileType = req.query.fileType as string;
+    
+    if (!fileName || !fileType) {
+      return res.status(400).send({
+        status: false,
+        message: "fileName and fileType are required"
+      });
+    }
+
+    // Validate file type
+    if (!fileType.startsWith('video/')) {
+      return res.status(400).send({
+        status: false,
+        message: "Only video files are allowed"
+      });
+    }
+
+    // Sanitize filename
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+
+    const urlData = await CommonFunctions.generatePresignedUrl(
+      sanitizedFileName,
+      fileType,
+      constants.EXERCISE_VIDEOS
+    );
+
+    if (!urlData?.uploadUrl || !urlData?.fileUrl) {
+      throw new Error('Failed to generate presigned URL');
+    }
+
+    return res.status(200).send({
+      status: true,
+      data: urlData
+    });
+  } catch (error: any) {
+    console.error('Error generating presigned URL:', error);
+    return res.status(500).send({
+      status: false,
+      message: error.message || 'Failed to generate upload URL'
+    });
+  }
+};
 
 /**
  * @summary - Update an exercise in exercise list
@@ -663,4 +707,6 @@ const apiUpdateMany = async (req: Request, res: Response) => {
   })
 }
 
-export default { apiListExercises, apiRetrieveExercise, apiCreateExercise, apiUpdateExercise, apiDeleteExercise, apiAddNewExercisesToExerciseList, apiAddTag, apiDeleteTag, apiUpdateExerciseList, apiDeleteArticleInTag, apiRetrieveExerciseByTitle, apiUploadVideoTest, searchExerciseList, apiGetSingleExerciseItem, apiDeleteExerciseListItem, apiGetExerciseListByTagId, apiGetExerciseListDays, apiUpdateTag, apiUpdateMany }
+
+
+export default { apiListExercises, apiRetrieveExercise, apiCreateExercise, apiUpdateExercise, apiDeleteExercise, apiAddNewExercisesToExerciseList, apiAddTag, apiDeleteTag, apiUpdateExerciseList, apiDeleteArticleInTag, apiRetrieveExerciseByTitle, apiUploadVideoTest, searchExerciseList, apiGetSingleExerciseItem, apiDeleteExerciseListItem, apiGetExerciseListByTagId, apiGetExerciseListDays, apiUpdateTag, apiUpdateMany, apiGetPresignedUrl }

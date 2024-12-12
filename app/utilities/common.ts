@@ -263,4 +263,39 @@ const validateRequestForEmptyValues = (inObj: any) => {
   return true
 }
 
-export default { geFileURL, getTotalPages, stringIsAValidUrl, getTimestampFromDate, getUploadURL, isNumber, validateRequestForEmptyValues, getUploadURLWithDir,validateAWSCredentials }
+const generatePresignedUrl = async (fileName: string, fileType: string, dirName: string) => {
+  try {
+    validateAWSCredentials();
+    
+    AWS.config.update({
+      accessKeyId: process.env.ACCESS_KEY_ID,
+      secretAccessKey: process.env.SECRET_ACCESS_KEY,
+      region: 'us-east-1'
+    });
+
+    const s3 = new AWS.S3();
+    const now = Math.round(+new Date() / 1000);
+    const filePath = dirName ? `${dirName}/` : '';
+    const fileKey = `${filePath}${now}-${fileName}`;
+
+    const params = {
+      Bucket: process.env.BUCKET as string,
+      Key: fileKey,
+      ContentType: fileType,
+      Expires: 3600, // URL expires in 1 hour
+    };
+
+    const uploadUrl = await s3.getSignedUrlPromise('putObject', params);
+    
+    return {
+      uploadUrl,
+      fileKey,
+      fileUrl: `https://${process.env.BUCKET}.s3.amazonaws.com/${fileKey}`
+    };
+  } catch (error) {
+    console.error("Error generating presigned URL:", error);
+    throw error;
+  }
+};
+
+export default { geFileURL, getTotalPages, stringIsAValidUrl, getTimestampFromDate, getUploadURL, isNumber, validateRequestForEmptyValues, getUploadURLWithDir,validateAWSCredentials, generatePresignedUrl }
