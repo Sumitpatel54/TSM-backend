@@ -600,7 +600,7 @@ passport.use(new GoogleStrategy.Strategy({
     // Redirect to frontend with a success parameter
     // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app'; // Adjust this as needed
     const frontendURL = 'https://client.curemigraine.org'; // Adjust this as needed
-    // const frontendURL = 'https://tsm-web.vercel.app'; // Adjust this as needed
+    // const frontendURL = 'http://localhost:3000'; // Adjust this as needed
     return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` });
   } catch (error) {
     return done(error, false);
@@ -635,80 +635,97 @@ passport.deserializeUser((serializedData: { userId: string, token: string }, don
 const tempTokens = new Map();
 
 const googleCallback = async (req: Request, res: Response) => {
-  console.log('Entering googleCallback function');
-  const data = req.user as any;
-  console.log('Google callback data:', data);
-  if (!data || !data.user || !data.token) {
-    console.log('Invalid Google callback data');
-    return res.redirect('https://client.curemigraine.org/home?error=invalid_data');
-  }
-
-  const { user, token } = data;
-
   try {
+    console.log('Entering googleCallback function');
+    
+    if (!req.user) {
+      console.log('No user data in request');
+      return res.redirect('https://client.curemigraine.org/home?error=no_user_data');
+    }
+
+    const data = req.user as any;
+    console.log('Google callback data:', JSON.stringify(data));
+
+    if (!data.user || !data.token) {
+      console.log('Invalid Google callback data structure');
+      return res.redirect('https://client.curemigraine.org/home?error=invalid_data');
+    }
+
     // Generate a temporary token
     const tempToken = uuidv4();
-    console.log('Generated temp token:', tempToken);
     
-    // Store the user data and token in the database
-    const newTempToken = new TempToken({
+    // Create the temp token document
+    const tempTokenDoc = new TempToken({
       token: tempToken,
-      userData: { user, token },
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes from now
+      userData: {
+        user: {
+          _id: data.user._id,
+          email: data.user.email,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName,
+          role: data.user.role
+        },
+        token: data.token
+      },
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000)
     });
-    await newTempToken.save();
-    console.log('Stored user data with temp token:', tempToken);
 
-    // Redirect to frontend with the temporary token
-    // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app';
-    // const frontendURL = 'http://13.61.69.144:8000/';
+    // Save to database
+    await tempTokenDoc.save();
+    console.log('Saved temp token to database:', tempToken);
+
+    // Redirect to frontend
     const frontendURL = 'https://client.curemigraine.org';
     const redirectURL = `${frontendURL}/home?googleToken=${tempToken}`;
     console.log('Redirecting to:', redirectURL);
-    res.redirect(redirectURL);
+    return res.redirect(redirectURL);
+
   } catch (error) {
     console.error('Error in googleCallback:', error);
-    res.redirect('https://client.curemigraine.org/home?error=server_error');
+    return res.redirect('https://client.curemigraine.org/home?error=server_error');
   }
 };
 
 const getGoogleUserData = async (req: Request, res: Response) => {
-  console.log('Entering getGoogleUserData function');
-  const { googleToken } = req.query;
-  console.log('Received googleToken:', googleToken);
-  
-  if (!googleToken || typeof googleToken !== 'string') {
-    console.log('Invalid googleToken');
-    return res.status(400).json({ error: 'Invalid token' });
-  }
-
   try {
-    console.log('Attempting to retrieve userData for token:', googleToken);
+    console.log('Entering getGoogleUserData function');
+    const { googleToken } = req.query;
+    
+    if (!googleToken || typeof googleToken !== 'string') {
+      console.log('Invalid googleToken');
+      return res.status(400).json({ 
+        status: false,
+        message: 'Invalid token provided'
+      });
+    }
+
+    // Find the temporary token
     const tempTokenDoc = await TempToken.findOne({ token: googleToken });
     
     if (!tempTokenDoc) {
-      console.log('Token not found or expired:', googleToken);
-      return res.status(404).json({ error: 'Token not found or expired' });
+      console.log('Token not found:', googleToken);
+      return res.status(404).json({ 
+        status: false,
+        message: 'Token not found or expired'
+      });
     }
 
-    const userData = tempTokenDoc.userData;
-    console.log('Retrieved userData:', userData);
-
-    // Check if userData has the expected structure
-    if (!userData.user || !userData.token) {
-      console.log('Invalid userData structure:', userData);
-      return res.status(500).json({ error: 'Invalid user data structure' });
-    }
-
-    // Delete the temporary token after use
+    // Delete the token immediately after finding it
     await TempToken.deleteOne({ token: googleToken });
-    console.log('Deleted temp token after use:', googleToken);
+    console.log('Successfully deleted temp token');
 
-    console.log('Successfully retrieved and returning user data');
-    res.json(userData);
+    // Return the user data
+    return res.status(200).json({
+      status: true,
+      data: tempTokenDoc.userData
+    });
+
   } catch (error) {
-    console.error('Error retrieving Google user data:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in getGoogleUserData:', error);
+    return res.status(500).json({ 
+      status: false,
+      message: 'Internal server error'
+    });
   }
 };
 

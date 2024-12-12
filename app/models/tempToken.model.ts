@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const TempTokenSchema = new mongoose.Schema({
+const tempTokenSchema = new mongoose.Schema({
   token: {
     type: String,
     required: true,
@@ -12,13 +12,11 @@ const TempTokenSchema = new mongoose.Schema({
   },
   expiresAt: {
     type: Date,
-    required: true
+    required: true,
+    expires: 900 // 15 minutes in seconds
   }
-})
+}, { timestamps: true })
 
-// Index to automatically delete expired tokens
-TempTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
-
-const TempToken = mongoose.model('TempToken', TempTokenSchema)
+const TempToken = mongoose.model('TempToken', tempTokenSchema)
 
 export default TempToken
