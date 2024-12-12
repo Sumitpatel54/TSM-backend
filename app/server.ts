@@ -94,8 +94,16 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // file upload
 app.use(fileupload({
-    uploadTimeout: 0
-}))
+    uploadTimeout: 0,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+    useTempFiles: true,
+    tempFileDir: '/tmp/',
+    abortOnLimit: true
+}));
+
+// Also increase the body parser limit
+app.use(bodyParser.json({limit: '100mb'}));
+app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
 
 app.use(session({
     resave: false,

@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 import { Request, Response } from 'express'
 import HttpStatusCode from "http-status-codes"
 import mongoose from "mongoose"
@@ -117,6 +118,29 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
       throw new Error("'day' has to be an array")
     }
 
+    // Validate AWS credentials before proceeding
+    try {
+      CommonFunctions.validateAWSCredentials();
+    } catch (awsError: any) {
+      return res.status(500).send({
+        status: false,
+        message: `AWS Configuration Error: ${awsError.message}`,
+        data: []
+      });
+    }
+
+    // File size validation
+    if (file && !CommonFunctions.stringIsAValidUrl(file)) {
+      const maxSize = parseInt(process.env.MAX_FILE_SIZE || '104857600'); // 100MB default
+      if (file.size > maxSize) {
+        return res.status(413).send({
+          status: false,
+          message: `File size too large. Maximum size is ${maxSize / (1024 * 1024)}MB`,
+          data: []
+        });
+      }
+    }
+
     // retrieve exercise
     let retrieveExerciseResponse: any = await ExerciseService.retrieveExercise({ _id: new mongoose.Types.ObjectId(exerciseId) })
 
@@ -161,7 +185,7 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
     article.exerciseParentId = exerciseId
     article.exerciseParentName = retrieveExerciseResponse.title
     article.tagId = tagId
-    article.tag = retrieveExerciseResponse.tags.filter((v: any) => !!tagId.find((t:any) => JSON.stringify(t) === JSON.stringify(v._id)))
+    article.tag = retrieveExerciseResponse.tags.filter((v: any) => !!tagId.find((t: any) => JSON.stringify(t) === JSON.stringify(v._id)))
     // article.tag = [ retrieveExerciseResponse.tags.find((v: any) => (JSON.stringify(v._id) === JSON.stringify(tagId)))?.title ]
 
     const createExerciseResponse = await ExerciseService.createExerciseList(article)
@@ -174,7 +198,7 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
     return res.status(statusCode).send({
       status: false,
       message: error.message,
-      data:[]
+      data: []
     })
   }
 }
@@ -631,7 +655,7 @@ const apiUploadVideoTest = async (req: Request, res: Response) => {
 }
 
 const apiUpdateMany = async (req: Request, res: Response) => {
-  let res_:any = await ExerciseService.updateMany()
+  let res_: any = await ExerciseService.updateMany()
 
   return res.status(200).send({
     status: true,

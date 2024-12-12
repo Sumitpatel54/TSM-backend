@@ -63,43 +63,91 @@ const getTimestampFromDate = (dateToUse: string, timeString: string) => {
 * @summary - Get s3 signed url
 */
 
+const validateAWSCredentials = () => {
+  const required = ['BUCKET', 'ACCESS_KEY_ID', 'SECRET_ACCESS_KEY'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing required AWS credentials: ${missing.join(', ')}`);
+  }
+  
+  // Validate credential format
+  if (process.env.ACCESS_KEY_ID?.length !== 20) {
+    throw new Error('Invalid ACCESS_KEY_ID format');
+  }
+  
+  if (process.env.SECRET_ACCESS_KEY?.length !== 40) {
+    throw new Error('Invalid SECRET_ACCESS_KEY format');
+  }
+};
 
 const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
   try {
+    // Validate AWS credentials first
+    validateAWSCredentials();
+    
     const filesArray = Array.isArray(files) ? files : [files];
     
-    const s3 = new AWS.S3({
+    // Configure AWS SDK
+    AWS.config.update({
       accessKeyId: process.env.ACCESS_KEY_ID,
-      secretAccessKey: process.env.SECRET_ACCESS_KEY
+      secretAccessKey: process.env.SECRET_ACCESS_KEY,
+      region: 'us-east-1',
+      httpOptions: {
+        timeout: parseInt(process.env.AWS_UPLOAD_TIMEOUT || '300000'),
+        connectTimeout: parseInt(process.env.AWS_CONNECT_TIMEOUT || '5000')
+      }
     });
 
-    AWS.config.update({ region: 'us-east-1' });
+    // Initialize S3 after configuring AWS
+    const s3 = new AWS.S3();
 
     const uploadPromises = filesArray.map(async (file: any) => {
-      const buffer: any = file.data;
-      const fileMime: any = file.name || file.originalname; // Adjust based on your file object structure
+      const fileMime: any = file.name || file.originalname;
       const arr = fileMime.split(".");
       const fileExt = arr[arr.length - 1];
-      const hash = uuidv4();
       const now = Math.round(+new Date() / 1000);
-      const filePath = dirName ? `${dirName}/` : ''; // Include directory name in file path if provided
+      const filePath = dirName ? `${dirName}/` : '';
       const fileName = `${now}.${fileExt}`;
       const fileFullName = `${filePath}${fileName}`;
 
-      const s3Params: AWS.S3.PutObjectRequest = {
-        Bucket: process.env.BUCKET as string,
-        Key: fileFullName,
-        Body: buffer,
-      };
+      // Use managed upload for better performance
+      const upload = new AWS.S3.ManagedUpload({
+        partSize: 10 * 1024 * 1024, // 10 MB chunks
+        queueSize: 4, // Process 4 parts simultaneously
+        params: {
+          Bucket: process.env.BUCKET as string,
+          Key: fileFullName,
+          Body: file.tempFilePath ? 
+            require('fs').createReadStream(file.tempFilePath) : 
+            file.data,
+          // ACL: 'public-read' // Make sure uploaded files are publicly readable
+        }
+      });
 
-      await s3.upload(s3Params).promise();
-      return `https://${process.env.BUCKET}.s3.amazonaws.com/${fileFullName}`;
+      // Add upload progress logging
+      upload.on('httpUploadProgress', (progress) => {
+        console.log(`Upload progress for ${fileName}: ${Math.round((progress.loaded * 100) / progress.total)}%`);
+      });
+
+      const result = await upload.promise();
+      console.log(`Upload completed for ${fileName}`);
+      
+      return result.Location; // Return the public URL of the uploaded file
     });
 
-    const urls:any = await Promise.all(uploadPromises);
+    const urls = await Promise.all(uploadPromises);
     return urls;
   } catch (error) {
     console.error("Error in getUploadURL:", error);
+    // Add more detailed error logging
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
     throw error;
   }
 };
@@ -216,4 +264,4 @@ const validateRequestForEmptyValues = (inObj: any) => {
   return true
 }
 
-export default { geFileURL, getTotalPages, stringIsAValidUrl, getTimestampFromDate, getUploadURL, isNumber, validateRequestForEmptyValues, getUploadURLWithDir }
+export default { geFileURL, getTotalPages, stringIsAValidUrl, getTimestampFromDate, getUploadURL, isNumber, validateRequestForEmptyValues, getUploadURLWithDir,validateAWSCredentials }
