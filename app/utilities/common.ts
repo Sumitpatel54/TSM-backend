@@ -121,7 +121,6 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
           Body: file.tempFilePath ? 
             require('fs').createReadStream(file.tempFilePath) : 
             file.data,
-          // ACL: 'public-read' // Make sure uploaded files are publicly readable
         }
       });
 
