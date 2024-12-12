@@ -9,8 +9,7 @@
     "functions": {
         "api/*": {
             "maxDuration": 10,
-            "memory": 1024,
-            "maxRequestSize": "50mb"
+            "memory": 1024
         }
     }
 }
