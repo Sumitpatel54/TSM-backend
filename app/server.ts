@@ -36,6 +36,7 @@ import stripeRoutes from "./routes/stripe.route"
 import subCategoryRoutes from "./routes/sub-category.route"
 import testRoutes from "./routes/test.route"
 import userRoutes from "./routes/user.route"
+import dailyTipRoutes from "./routes/daily-tip.routes";
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
 
 
@@ -213,6 +214,7 @@ app.use("/financial", stripeRoutes)
 app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 app.use('/stats', statsRoutes)
 app.use('/user', userRoutes)
+app.use("/dailyTips", dailyTipRoutes)
 
 // simple route
 app.get("/", (_req: Request, res: Response) => {
