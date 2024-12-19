@@ -26,3 +26,4 @@ const dailyTipSchema = new Schema({
 })
 
 export default mongoose.model<IDailyTip>('DailyTip', dailyTipSchema)
+
