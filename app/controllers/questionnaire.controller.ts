@@ -12,6 +12,7 @@ import commonUtilitie from "../utilities/common"
 import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
 import constants from "../utilities/directoryPath"
 import Questionnaire from "../models/questionnaire.model"
+import userController from "./user.controller"
 // const apiCreateQuestionnaire = async (req: Request, res: Response) => {
 //   try {
 //     let payload: any = req.body ? req.body : undefined
@@ -66,7 +67,7 @@ const apiCreateQuestionnaire = async (req: Request, res: Response) => {
     if (files.length > 0) {
       const imageUrlsArray = await Promise.all(files.map(file => commonUtilitie.getUploadURLWithDir(file, constants.QUESTIONNAIRE_IMAGES)));
       const imageUrls = imageUrlsArray.flat(); // Flatten the array
-      
+
       payload.imageUrl = imageUrls; // Ensure this is properly set
     }
 
@@ -254,7 +255,7 @@ const apiUpdateQuestionnaire = async (req: Request, res: Response) => {
     if (files.length > 0) {
       const imageUrlsArray = await Promise.all(files.map(file => commonUtilitie.getUploadURLWithDir(file, constants.QUESTIONNAIRE_IMAGES)));
       const imageUrls = imageUrlsArray.flat(); // Flatten the array
-      
+
       payload.imageUrl = imageUrls; // Ensure this is properly set
     }
     // if (file) {
@@ -409,7 +410,7 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     const questionnaireId: any = req.params.questionId
     const userId: any = req.user?.id
 
-    
+
     const answer: any = req.body.answer?.trim()
     const file: any = req.files?.image
 
@@ -467,11 +468,18 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     answerObj["image"] = image || ""
 
     // console.log("retrieveQuestionnaireResponse ==", retrieveQuestionnaireResponse);
-    
+
     // add provided answer to user
     await UserService.updateUser(userId, {
       $set: { [`questionnaireAnswers.${questionnaireId}`]: answerObj },
     })
+
+    try {
+      const user: any = await UserService.findUser({ _id: userId })
+      await userController.updateUserBMIData(user);
+    } catch (error: any) {
+      console.warn("Failed to update user BMI data:", error.message);
+    }
 
     // create program for user
     try {
@@ -483,7 +491,7 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
 
     try {
       await QuestionnaireService.programGeneration(userId)
-      
+
     } catch (e: any) {
       console.log("error =======", e)
     }
@@ -770,7 +778,7 @@ const apiGenerateReportBlock = async (req: Request, res: Response) => {
 const apiGetOnboardingProgress = async (req: Request, res: Response) => {
   try {
     const userId: any = req.user?.id;
-    
+
     if (!userId) {
       return res.status(HttpStatusCode.UNAUTHORIZED).send({
         status: false,
@@ -829,7 +837,7 @@ const apiUpdateOnboardingProgress = async (req: Request, res: Response) => {
     }
 
     const updatedUser = await UserService.updateUser(userId, {
-      $set: { 
+      $set: {
         currentQuestionIndex: currentQuestionIndex,
         completedSections: completedSections,
       }

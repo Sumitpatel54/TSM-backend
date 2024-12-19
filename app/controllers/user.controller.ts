@@ -248,5 +248,6 @@ export default {
     fetchDailyExercises,
     fetchDailyNutrition,
     storeDailyExercises,
-    storeDailyNutrition
+    storeDailyNutrition,
+    updateUserBMIData
 }
