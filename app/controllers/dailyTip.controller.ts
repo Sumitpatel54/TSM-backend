@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import HttpStatusCode from 'http-status-codes'
-import DailyTip from '../models/dailyTip.model'
+import DailyTip from '../models/dailytip.model'
 import constants from '../utilities/directoryPath'
 import commonUtilitie from '../utilities/common'
 
