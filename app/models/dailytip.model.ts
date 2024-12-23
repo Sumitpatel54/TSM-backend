@@ -4,6 +4,7 @@ export interface IDailyTip extends Document {
     title: string;
     description: string;
     imageUrl?: string[];
+    day: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -20,7 +21,12 @@ const dailyTipSchema = new Schema({
     imageUrl: [{
         type: String,
         required: false,
-    }]
+    }],
+    day: {
+        type: String,
+        required: true,
+        default: null
+    }
 }, {
     timestamps: true
 })
