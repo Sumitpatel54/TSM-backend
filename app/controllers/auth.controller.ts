@@ -22,6 +22,9 @@ import config from '../configurations/config'
 import { Session } from 'express-session';
 import { v4 as uuidv4 } from 'uuid';
 import TempToken from '../models/tempToken.model'; // You'll need to create this model
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 
 
@@ -563,8 +566,8 @@ interface GoogleUser {
 passport.use(new GoogleStrategy.Strategy({
   callbackURL: `${config.API_URL}/auth/callback/google`,
   // callbackURL: `http://localhost:8000/auth/callback/google`,
-  clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
-  clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
+  clientID: process.env.GOOGLE_CLIENT_ID || '',
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
 }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
   try {
     const { id: googleId, _json } = profile
