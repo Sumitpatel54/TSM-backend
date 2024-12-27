@@ -1,4 +1,4 @@
-deploy.ymlname: Deploy Node Js App to AWS EC2
+name: Deploy Node Js App to AWS EC2
 
 on:
   push:
