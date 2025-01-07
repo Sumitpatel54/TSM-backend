@@ -714,8 +714,8 @@ const getGoogleUserData = async (req: Request, res: Response) => {
     }
 
     // Delete the token immediately after finding it
-    await TempToken.deleteOne({ token: googleToken });
-    console.log('Successfully deleted temp token');
+    // await TempToken.deleteOne({ token: googleToken });
+    // console.log('Successfully deleted temp token');
 
     // Return the user data
     return res.status(200).json({
