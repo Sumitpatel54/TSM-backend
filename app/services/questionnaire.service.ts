@@ -273,14 +273,14 @@ const generateTemplatesArray = (exerciseList: any) => {
     tuesday: [],
     wednesday: [],
     thursday: [],
-    // friday: [ ],
+    friday: [ ],
     saturday: [],
     sunday: [],
   }
 
   let exerciseList_ = [...exerciseList]
 
-  for (let i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 13; i++) {
     if (exerciseList_.length > 1) {
       let days_ = Object.keys(days)
       for (let day__ of days_) {
@@ -313,6 +313,7 @@ const generateTemplatesArray = (exerciseList: any) => {
       days.tuesday.push(...exerciseList)
       days.wednesday.push(...exerciseList)
       days.thursday.push(...exerciseList)
+      days.friday.push(...exerciseList)
       days.saturday.push(...exerciseList)
       days.sunday.push(...exerciseList)
     }
@@ -331,7 +332,7 @@ const generateTemplatesArray = (exerciseList: any) => {
       tuesday: [],
       wednesday: [],
       thursday: [],
-      // friday: [ ],
+      friday: [ ],
       saturday: [],
       sunday: [],
     }
@@ -361,13 +362,8 @@ const removeTemplateDuplicates = (templates_: any) => {
   return templates
 }
 const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
-  // console.log("exerciseList ========", exerciseList);
-
   try {
-    // console.log("try ========================================");
-
     let templates = []
-
     let days: Record<string, any> = {
       monday: [],
       tuesday: [],
@@ -375,80 +371,38 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
       thursday: [],
       friday: [],
       saturday: [],
-      sunday: [],
+      sunday: [], // Include Sunday
     }
 
+    // Keep 13 weeks but use all 7 days
     for (let i = 1; i <= 13; i++) {
-      // console.log("for ============================");
-
       let days_ = Object.keys(days)
-      // console.log("seee days", days_);
-
       for (let day__ of days_) {
-        // console.log("day__ ==", day__);
-
         let arr = days[day__]
         if (arr.length === 1) {
-          // console.log("continiuee =============");
           continue
         }
 
+        // Ensure we always have exercises by cycling through the list
+        if (exerciseList.length === 0) {
+          exerciseList = [...exerciseList] // Reset to original list
+        }
+
+        // Add exercise to the day
         days[day__].push(exerciseList[0])
 
         if (!exerciseList[1]) {
-          // console.log("continiuee 1111 =============");
           days[day__].push(exerciseList[0])
         }
-        // else {
-        //   days[day__].push(exerciseList_[1])
-        // }
 
-        // exerciseList_.shift()
         if (exerciseList.length > 0) {
           exerciseList.shift()
         }
-
-        if (exerciseList.length === 0) {
-          exerciseList = [...exerciseList]
-        }
       }
 
-      for (let v of Object.keys(days)) {
-        days[v] = days[v].filter((t: any, i: any, a: any) => {
-          if (!t || !t._id) {
-            // console.log(`Missing _id in element at i index ${i}:`, t);
-            return false; // Filter out elements without _id
-          }
+      templates.push({ week: i, weekCompleted: false, days: { ...days } })
 
-          const firstIndex = a.findIndex((v2: any) => {
-            if (!v2 || !v2._id) {
-              // console.log(`Missing _id in compared v2 element:`, v2);
-              return false; // Ignore elements without _id during comparison
-            }
-
-            // console.log("v2._id =", JSON.stringify(v2._id));
-            // console.log("t._id =", JSON.stringify(t._id));
-            return JSON.stringify(v2._id) === JSON.stringify(t._id);
-          });
-
-          // console.log("i =", i, "firstIndex =", firstIndex);
-          return firstIndex === i;
-        });
-      }
-
-      // remove duplicates
-      // for (let v of Object.keys(days)) {
-      //   days[v] = days[v].filter((t: any, i: any, a: any) => a.findIndex((v2: any) => { console.log("v2 ==", JSON.stringify(v2._id))
-      //     console.log("JSON.stringify(t._id) ==", JSON.stringify(t._id))
-      //     console.log("i===", i);
-
-      //    }))
-      // days[v] = days[v].filter((t: any, i: any, a: any) => a.findIndex((v2: any) => (JSON.stringify(v2._id) === JSON.stringify(t._id))) === i)
-
-      //    }
-
-      templates.push({ week: i, weekCompleted: false, days })
-
+      // Reset days for next week
       days = {
         monday: [],
         tuesday: [],
@@ -456,17 +410,14 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
         thursday: [],
         friday: [],
         saturday: [],
-        sunday: [],
+        sunday: [], // Include Sunday in reset
       }
     }
-
-    // console.log("days ===", templates);
 
     return { templates }
   } catch (error: any) {
     console.log(error.message)
   }
-
 }
 // /**
 //  * @summary - Generate an exercise program for a user
@@ -505,6 +456,9 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
 //   // }
 // }
 
+//  =======================================================================================================
+
+// function for generate general exercise program
 const generateProgramForUser = async (userId: any) => {
 
   let problems_ = []
@@ -539,46 +493,197 @@ const generateProgramForUser = async (userId: any) => {
   await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
 }
 
-/**
- * @summary - Generate an exercise program for a user
- * @param userId
- */
-const generatePosturalProgramForUser = async (userId: any) => {
+// function for generating postural exercise program
+async function programGeneration(userId: string) {
   try {
-    let problems_ = [];
-    let answers_ = [];
+    const exerciseList: any = await getExerciseList(userId);
+    if (exerciseList.length === 0) return "No exercises found";
 
-    let user = await User.findById(userId);
-    if (!user) throw new Error("Cannot generate exercise program. User does not exist");
+    const program: any = await Program.findOne({ userId: userId }, { templates: 1 });
+    let templates = program?.templates || [];
 
-    user = user.toObject();
+    const tags: any = await exerciseModel.findOne({ title: "Postural" }, { tags: 1, _id: 0 });
+    const tagIds: Record<string, string> = {};
+    tags.tags.forEach((tag: any) => {
+      tagIds[tag.title.replace(/\s/g, "").toLowerCase()] = tag._id.valueOf();
+    });
 
-    // Cache user provided answers
-    let answers = user.questionnaireAnswers;
-    if (!answers || Object.keys(answers).length === 0) throw new Error("User has not provided any answers.");
-    answers_ = Object.values(answers);
-    problems_ = [...answers_];
+    await fphOrRsExerciseGetAndSeed(exerciseList, templates, {
+      fhpID: tagIds["forwardheadposture"],
+      rsID: tagIds["roundedshoulders"],
+    });
 
-    // Exercises from phase 1 from 1 problem
-    // if (problems_.length === 1) {
-    try {
-      let generalExerciseList = await getAllPosturalExercise();
+    const usedExerciseIds = new Set<any>();
 
-      let templates = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates;
+    const specificTags = [
+      "Increased kyphosis",
+      "Forward tilted pelvis",
+      "Elevated shoulders",
+      "TMJ-pain",
+      "Scapular winging",
+      "Backward tilted pelvis"
+    ];
 
-      templates = removeTemplateDuplicates(templates);
-      await ProgramForPosturalExercise.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true });
-    } catch (innerError) {
-      console.error("Error during program generation:", innerError);
-      throw innerError;
+    const tagExercises: Record<string, any[]> = {};
+    for (const tag of specificTags) {
+      const tagKey = tag.replace(/\s/g, "").toLowerCase();
+      const tagId = tagIds[tagKey];
+      // console.log(`Fetching exercises for tag: ${tag} with tagId: ${tagId}`);
+      if (tagId) {
+        const exercises = await exerciseListModel.find({ tagId, exerciseParentName: "Postural" });
+        tagExercises[tag] = exercises || [];
+        // console.log(`Found ${exercises.length} exercises for tag ${tag}`);
+      } else {
+        tagExercises[tag] = [];  // Ensure tagExercises[tag] is always an array
+        // console.log(`No exercises found for tag ${tag}`);
+      }
     }
-    // }
-  } catch (error) {
-    console.error("Error in generatePosturalProgramForUser:", error);
+
+    const otherExercises = [];
+    for (const exercise of exerciseList) {
+      // console.log("Processing exercise:", exercise);
+
+      if (exercise.exercise === "Postural" && exercise.answer === "Yes") {
+        // console.log("Selected 'Yes' for postural exercise:", exercise);
+        const tag = exercise.exerciseTag;
+        // console.log("Exercise tag:", tag);
+
+        if (specificTags.includes(tag) && Array.isArray(tagExercises[tag])) {
+          // console.log(`Exercises for tag ${tag}:`, tagExercises[tag]);
+
+          for (const taggedExercise of tagExercises[tag]) {
+            if (!usedExerciseIds.has(taggedExercise._id)) {
+              otherExercises.push(taggedExercise);
+              usedExerciseIds.add(taggedExercise._id);
+              // console.log(`Added exercise for tag ${tag}:`, taggedExercise);
+            }
+          }
+        } else {
+          // console.log(`No exercises found or not a specific tag: ${tag}`);
+        }
+      } else {
+        // console.log(`Skipped exercise not selected or not postural:`, exercise);
+      }
+    }
+
+    exerciseSeederInTemplate(templates, otherExercises, usedExerciseIds);
+
+    await Program.updateOne({ userId: userId }, { $set: { templates: templates } });
+    return "Program is created";
+  } catch (error: any) {
+    console.error("Error in program generation:", error.message);
+    return "Error in program generation";
   }
+}
+
+function getTwoRandomNumber(number: number) {
+  let number1 = Math.abs(Math.floor(Math.random() * number - 1));
+  let number2 = Math.abs(Math.floor(Math.random() * number - 1));
+
+  while (number1 === number2) {
+    number2 = Math.abs(Math.floor(Math.random() * number - 1));
+  }
+
+  return { number1, number2 };
+}
+
+
+async function getExerciseList(userId: string) {
+  try {
+    let exerciseList = [];
+    const user: any = await User.findOne({ _id: userId }, { questionnaireAnswers: 1 });
+
+    if (!user || !user.questionnaireAnswers) return [];
+
+    for (const key in user.questionnaireAnswers) {
+      const exercises = user.questionnaireAnswers[key].questionnaire.queryBlock.filter((i: any) => i?.isExercise);
+      for (const exercise of exercises) {
+        exercise.answer = user.questionnaireAnswers[key].answer;
+        exerciseList.push(exercise);
+      }
+    }
+
+    return exerciseList;
+  } catch (error: any) {
+    console.log(error.message);
+    return [];
+  }
+}
+
+
+function exerciseSeederInTemplate(templates: any[], exercises: any[], usedExercises: Set<string> = new Set()) {
+  // Add Sunday to make it 7 days per week (13 weeks * 7 days = 91 days)
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  if (exercises.length === 0) {
+    return;
+  }
+
+  if (exercises.length === 1) {
+    for (const i of templates) {
+      for (const j in i['days']) {
+        if (days.includes(j)) {
+          i['days'][j].push(exercises[0]);
+        }
+      }
+    }
+  } else {
+    for (const i of templates) {
+      for (const j in i['days']) {
+        if (days.includes(j)) {
+          const randomNumbers = getTwoRandomNumber(exercises.length);
+          i['days'][j].push(exercises[randomNumbers.number1]);
+          i['days'][j].push(exercises[randomNumbers.number2]);
+          usedExercises.add(exercises[randomNumbers.number1]._id);
+          usedExercises.add(exercises[randomNumbers.number2]._id);
+        }
+      }
+    }
+  }
+}
+
+async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], { fhpID, rsID }: { fhpID: string, rsID: string }) {
+  try {
+    const isExerciseFound = {
+      fhp: false,
+      rs: false
+    };
+
+    for (const i of exerciseList) {
+      if (i.exerciseTag === "Forward head posture" && i.answer === "Yes") {
+        isExerciseFound['fhp'] = true;
+
+      } else if (i.exerciseTag === "Rounded shoulders" && i.answer === "Yes") {
+        isExerciseFound['rs'] = true;
+      }
+    }
+
+    if (!isExerciseFound.fhp && !isExerciseFound.rs) return;
+
+    if (isExerciseFound.fhp) {
+      const fhpExercises = await exerciseListModel.find({ tagId: fhpID });
+      exerciseSeederInTemplate(templates, fhpExercises);
+    }
+
+    if (isExerciseFound.rs) {
+      const rsExercises = await exerciseListModel.find({ tagId: rsID });
+      exerciseSeederInTemplate(templates, rsExercises);
+    }
+
+    return;
+  } catch (error: any) {
+    console.log(error.message);
+  }
+}
+
+//  =======================================================================================================
+
+const getTotalQuestionCount = async (): Promise<number> => {
+  return await Questionnaire.countDocuments();
 };
 
-// ========== new programs =============
+
+// ========== old code =============
 
 // function getTwoRandomNumber(number: number) {
 //   let number1 = Math.abs(Math.floor(Math.random() * number - 1))
@@ -730,110 +835,51 @@ const generatePosturalProgramForUser = async (userId: any) => {
 // }
 
 // this code is fixed issues of same day exercise repeat 
-function getTwoRandomNumber(number: number) {
-  let number1 = Math.abs(Math.floor(Math.random() * number - 1));
-  let number2 = Math.abs(Math.floor(Math.random() * number - 1));
 
-  while (number1 === number2) {
-    number2 = Math.abs(Math.floor(Math.random() * number - 1));
-  }
 
-  return { number1, number2 };
-}
 
-function getRandomNumber(number: number, exclude: Set<number> = new Set()) {
-  let randomNum;
-  do {
-    randomNum = Math.abs(Math.floor(Math.random() * number - 1));
-  } while (exclude.has(randomNum));
-  return randomNum;
-}
 
-async function getExerciseList(userId: string) {
+
+
+/**
+ * @summary - Generate an exercise program for a user
+ * @param userId
+ */
+const generatePosturalProgramForUser = async (userId: any) => {
   try {
-    let exerciseList = [];
-    const user: any = await User.findOne({ _id: userId }, { questionnaireAnswers: 1 });
+    let problems_ = [];
+    let answers_ = [];
 
-    if (!user || !user.questionnaireAnswers) return [];
+    let user = await User.findById(userId);
+    if (!user) throw new Error("Cannot generate exercise program. User does not exist");
 
-    for (const key in user.questionnaireAnswers) {
-      const exercises = user.questionnaireAnswers[key].questionnaire.queryBlock.filter((i: any) => i?.isExercise);
-      for (const exercise of exercises) {
-        exercise.answer = user.questionnaireAnswers[key].answer;
-        exerciseList.push(exercise);
-      }
+    user = user.toObject();
+
+    // Cache user provided answers
+    let answers = user.questionnaireAnswers;
+    if (!answers || Object.keys(answers).length === 0) throw new Error("User has not provided any answers.");
+    answers_ = Object.values(answers);
+    problems_ = [...answers_];
+
+    // Exercises from phase 1 from 1 problem
+    // if (problems_.length === 1) {
+    try {
+      let generalExerciseList = await getAllPosturalExercise();
+
+      let templates = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates;
+
+      templates = removeTemplateDuplicates(templates);
+      await ProgramForPosturalExercise.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true });
+    } catch (innerError) {
+      console.error("Error during program generation:", innerError);
+      throw innerError;
     }
-
-    return exerciseList;
-  } catch (error: any) {
-    console.log(error.message);
-    return [];
+    // }
+  } catch (error) {
+    console.error("Error in generatePosturalProgramForUser:", error);
   }
-}
+};
 
-
-function exerciseSeederInTemplate(templates: any[], exercises: any[], usedExercises: Set<string> = new Set()) {
-  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  if (exercises.length === 0) {
-    return;
-  }
-
-  if (exercises.length === 1) {
-    for (const i of templates) {
-      for (const j in i['days']) {
-        if (days.includes(j)) {
-          i['days'][j].push(exercises[0]);
-        }
-      }
-    }
-  } else {
-    for (const i of templates) {
-      for (const j in i['days']) {
-        if (days.includes(j)) {
-          const randomNumbers = getTwoRandomNumber(exercises.length);
-          i['days'][j].push(exercises[randomNumbers.number1]);
-          i['days'][j].push(exercises[randomNumbers.number2]);
-          usedExercises.add(exercises[randomNumbers.number1]._id);
-          usedExercises.add(exercises[randomNumbers.number2]._id);
-        }
-      }
-    }
-  }
-}
-
-async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], { fhpID, rsID }: { fhpID: string, rsID: string }) {
-  try {
-    const isExerciseFound = {
-      fhp: false,
-      rs: false
-    };
-
-    for (const i of exerciseList) {
-      if (i.exerciseTag === "Forward head posture" && i.answer === "Yes") {
-        isExerciseFound['fhp'] = true;
-        
-      } else if (i.exerciseTag === "Rounded shoulders" && i.answer === "Yes") {
-        isExerciseFound['rs'] = true;
-      }
-    }
-
-    if (!isExerciseFound.fhp && !isExerciseFound.rs) return;
-
-    if (isExerciseFound.fhp) {
-      const fhpExercises = await exerciseListModel.find({ tagId: fhpID });
-      exerciseSeederInTemplate(templates, fhpExercises);
-    }
-
-    if (isExerciseFound.rs) {
-      const rsExercises = await exerciseListModel.find({ tagId: rsID });
-      exerciseSeederInTemplate(templates, rsExercises);
-    }
-
-    return;
-  } catch (error: any) {
-    console.log(error.message);
-  }
-}
 
 // async function programGeneration(userId: string) {
 //   try {
@@ -961,90 +1007,5 @@ async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], 
 // }
 
 
-async function programGeneration(userId: string) {
-  try {
-    const exerciseList: any = await getExerciseList(userId);
-    if (exerciseList.length === 0) return "No exercises found";
-
-    const program: any = await Program.findOne({ userId: userId }, { templates: 1 });
-    let templates = program?.templates || [];
-
-    const tags: any = await exerciseModel.findOne({ title: "Postural" }, { tags: 1, _id: 0 });
-    const tagIds: Record<string, string> = {};
-    tags.tags.forEach((tag: any) => {
-      tagIds[tag.title.replace(/\s/g, "").toLowerCase()] = tag._id.valueOf();
-    });
-
-    await fphOrRsExerciseGetAndSeed(exerciseList, templates, {
-      fhpID: tagIds["forwardheadposture"],
-      rsID: tagIds["roundedshoulders"],
-    });
-
-    const usedExerciseIds = new Set<any>();
-
-    const specificTags = [
-      "Increased kyphosis",
-      "Forward tilted pelvis",
-      "Elevated shoulders",
-      "TMJ-pain",
-      "Scapular winging",
-      "Backward tilted pelvis"
-    ];
-
-    const tagExercises: Record<string, any[]> = {};
-    for (const tag of specificTags) {
-      const tagKey = tag.replace(/\s/g, "").toLowerCase();
-      const tagId = tagIds[tagKey];
-      // console.log(`Fetching exercises for tag: ${tag} with tagId: ${tagId}`);
-      if (tagId) {
-        const exercises = await exerciseListModel.find({ tagId, exerciseParentName: "Postural" });
-        tagExercises[tag] = exercises || [];
-        // console.log(`Found ${exercises.length} exercises for tag ${tag}`);
-      } else {
-        tagExercises[tag] = [];  // Ensure tagExercises[tag] is always an array
-        // console.log(`No exercises found for tag ${tag}`);
-      }
-    }
-
-    const otherExercises = [];
-    for (const exercise of exerciseList) {
-      // console.log("Processing exercise:", exercise);
-
-      if (exercise.exercise === "Postural" && exercise.answer === "Yes") {
-        // console.log("Selected 'Yes' for postural exercise:", exercise);
-        const tag = exercise.exerciseTag;
-        // console.log("Exercise tag:", tag);
-
-        if (specificTags.includes(tag) && Array.isArray(tagExercises[tag])) {
-          // console.log(`Exercises for tag ${tag}:`, tagExercises[tag]);
-
-          for (const taggedExercise of tagExercises[tag]) {
-            if (!usedExerciseIds.has(taggedExercise._id)) {
-              otherExercises.push(taggedExercise);
-              usedExerciseIds.add(taggedExercise._id);
-              // console.log(`Added exercise for tag ${tag}:`, taggedExercise);
-            }
-          }
-        } else {
-          // console.log(`No exercises found or not a specific tag: ${tag}`);
-        }
-      } else {
-        // console.log(`Skipped exercise not selected or not postural:`, exercise);
-      }
-    }
-
-    exerciseSeederInTemplate(templates, otherExercises, usedExerciseIds);
-
-    await Program.updateOne({ userId: userId }, { $set: { templates: templates } });
-    return "Program is created";
-  } catch (error: any) {
-    console.error("Error in program generation:", error.message);
-    return "Error in program generation";
-  }
-}
-
-const getTotalQuestionCount = async (): Promise<number> => {
-  return await Questionnaire.countDocuments();
-};
 
 export default { createQuestionnaire, retrieveQuestionnaire, listQuestionnaires, updateQuestionnaire, deleteQuestionnaire, listAllQuestionnaires, retrieveQuestionnairesWithPaginate, retrieveQuestionnaireWithPaginateAggregate, generateProgramForUser, listAllQuestionnairesSortedByCreatedAt, retrieveNextQuestionnaire, generatePosturalProgramForUser, programGeneration, getTotalQuestionCount }
