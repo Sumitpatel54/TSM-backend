@@ -234,7 +234,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
   try {
 
     const userId: any = req.user?.id
-    let { paymentType, planId, priceId, amount, currency } = req.body
+    let { paymentType, planId, priceId, amount, currency, couponId } = req.body
     let intent: Stripe.SetupIntent | Stripe.PaymentIntent | undefined
 
     // validate paymentType
@@ -280,18 +280,22 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
     if (paymentType === 'SUBSCRIPTION') {
       let setupIntentData: { [key: string]: any } = {
         customer: user?.stripeCustomerId,
-        "metadata": {
+        metadata: {
           userId,
           action: "SUBSCRIPTION_MADE",
           gateway: "STRIPE",
           product: planId,
           price: priceId,
+          coupon: couponId
         }
+      }
+      if (couponId) {
+        setupIntentData.promotion_code = couponId
       }
       intent = await stripe.setupIntents.create(setupIntentData)
     } else if (paymentType === 'ONE_TIME_PURCHASE') {
       type SetupFutureUsage = 'off_session' | 'on_session'
-      let paymentIntentData = {
+      let paymentIntentData: Stripe.PaymentIntentCreateParams = {
         'setup_future_usage': 'off_session' as SetupFutureUsage,
         "customer": user?.stripeCustomerId,
         "metadata": {
@@ -300,9 +304,27 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
           gateway: "STRIPE",
           product: planId,
           price: priceId,
+          coupon: couponId
         },
         amount: (amount * 100),
-        currency
+        currency,
+        automatic_payment_methods: { enabled: true }
+      }
+      if (couponId) {
+        // First get the promotion code
+        const promotionCodes = await stripe.promotionCodes.list({
+          code: couponId,
+          active: true,
+          limit: 1
+        });
+
+        if (promotionCodes.data.length > 0) {
+          const promoCode = promotionCodes.data[0];
+          paymentIntentData.metadata = {
+            ...paymentIntentData.metadata,
+            promotion_code: promoCode.id
+          };
+        }
       }
       intent = await stripe.paymentIntents.create(paymentIntentData)
     }
@@ -311,7 +333,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
     try {
       await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
     } catch (error) {
-      
+
     }
 
     if (intent) {
@@ -332,5 +354,70 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
   }
 }
 
+const validateCoupon = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body
+    // First list promotion codes and find the matching one
+    const promotionCodes = await stripe.promotionCodes.list({
+      code: code,
+      active: true,
+      limit: 1
+    });
 
-export default { getAllProductsAndPlans, createSubscription, chargeCard, unsubscribeUser, upgradeSubscription, checkout }
+    console.log('promotionCodes ==', promotionCodes)
+    if (promotionCodes.data.length === 0) {
+      throw new Error("Invalid coupon code");
+    }
+
+    const promoCode = promotionCodes.data[0];
+    const coupon = promoCode.coupon;
+
+    return res.status(200).send({
+      status: true,
+      data: {
+        valid: true,
+        coupon
+      }
+    })
+  } catch (error) {
+    console.log('error ==', error)
+    return res.status(400).send({
+      status: false,
+      message: "Invalid coupon code",
+      error: error
+    })
+  }
+}
+
+const listAvailableCoupons = async (req: Request, res: Response) => {
+  try {
+    const promotionCodes = await stripe.promotionCodes.list({
+      active: true,
+      limit: 10
+    });
+
+    const availableCoupons = promotionCodes.data.map(promo => ({
+      id: promo.id,
+      code: promo.code,
+      name: promo.coupon.name,
+      description: promo.coupon.name,
+      percentOff: promo.coupon.percent_off,
+      amountOff: promo.coupon.amount_off,
+      currency: promo.coupon.currency,
+      maxRedemptions: promo.max_redemptions,
+      timesRedeemed: promo.times_redeemed
+    }));
+
+    return res.status(200).send({
+      status: true,
+      data: availableCoupons
+    });
+  } catch (error: any) {
+    return res.status(500).send({
+      status: false,
+      message: error.message
+    });
+  }
+};
+
+export default { getAllProductsAndPlans, createSubscription, chargeCard, unsubscribeUser, upgradeSubscription, checkout, validateCoupon, listAvailableCoupons }

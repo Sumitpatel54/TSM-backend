@@ -13,4 +13,8 @@ router.post("/charge", requireUserToLogin, StripeContorller.chargeCard as any)
 //router.post("/webhook", express.raw({ type: "*/*" }), StripeContorller.stripeWebhook as any)
 router.post("/checkout", requireUserToLogin, StripeContorller.checkout as any)
 
+// New coupon routes
+router.post("/validate-coupon", requireUserToLogin, StripeContorller.validateCoupon as any)
+router.get("/list-coupons", requireUserToLogin, StripeContorller.listAvailableCoupons as any)
+
 export = router
