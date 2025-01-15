@@ -65,7 +65,7 @@ const apiAdminLogin = async (req: Request, res: Response, _next: NextFunction) =
 
   //remove the static url and replce it with frontend admin dashboard url
   const templateData = {
-    url: `https://${process.env.ADMIN_DASHBOARD_HOSTNAME}/auth/checkAuthentication/${payload.email}/${loginSecure}`
+    url: `${config.LOCAL_SERVER.host_url}/auth/checkAuthentication/${payload.email}/${loginSecure}`
   }
 
   const subject = `Verify your account`
@@ -116,7 +116,7 @@ const resendApiAdminLogin = async (req: Request, res: Response, _next: NextFunct
   }
 
   const templateData = {
-    url: `https://${process.env.ADMIN_DASHBOARD_HOSTNAME}/auth/checkAuthentication/${payload.email}/${loginSecure}`
+    url: `${config.LOCAL_SERVER.host_url}/auth/checkAuthentication/${payload.email}/${loginSecure}`
   }
 
   const subject = `Verify your account`
