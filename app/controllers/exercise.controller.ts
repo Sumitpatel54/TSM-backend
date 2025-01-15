@@ -102,6 +102,7 @@ const apiUpdateTag = async (req: Request, res: Response) => {
  * @returns
  */
 const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => {
+  console.log("apiAddNewExercisesToExerciseList========")
   let statusCode = 500
 
   try {
@@ -160,14 +161,17 @@ const apiAddNewExercisesToExerciseList = async (req: Request, res: Response) => 
     }
 
     const article: any = {}
-
-    if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
-      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEOS)
-      article.video = videoUrls[0]
+    if (file) {
+      if (CommonFunctions.stringIsAValidUrl(file)) {
+        // If file is already a valid URL, use it directly
+        article.video = file
+      } else if (file !== "null") {
+        // If file is a new upload, get new URL
+        const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEOS)
+        article.video = videoUrls[0]
+      }
     } else if (file === null || file === "null") {
       article.video = null
-    } else if (Array.isArray(file)) {
-      article.video = file[0]
     }
     if (title) {
       article.title = title
@@ -205,7 +209,7 @@ const apiGetPresignedUrl = async (req: Request, res: Response) => {
   try {
     const fileName = req.query.fileName as string;
     const fileType = req.query.fileType as string;
-    
+
     if (!fileName || !fileType) {
       return res.status(400).send({
         status: false,
@@ -267,16 +271,29 @@ const apiUpdateExerciseList = async (req: Request, res: Response) => {
 
     const article: any = {}
 
-    if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
-      // @ts-ignore
-      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEO)
+    // if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
+    //   // @ts-ignore
+    //   const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEO)
 
-      article.video = videoUrls[0]
-    }
-    else if (file === null || file === "null") {
+    //   article.video = videoUrls[0]
+    // }
+    // else if (file === null || file === "null") {
+    //   article.video = null
+    // }
+
+    if (file) {
+      if (CommonFunctions.stringIsAValidUrl(file)) {
+        // If file is already a valid URL, use it directly
+        article.video = file
+      } else if (file !== "null") {
+        // If file is a new upload, get new URL
+        const videoUrls = await CommonFunctions.getUploadURLWithDir(file, constants.EXERCISE_VIDEOS)
+        article.video = videoUrls[0]
+      }
+    } else if (file === null || file === "null") {
       article.video = null
     }
-
+    
     if (title) {
       article.title = title
     }

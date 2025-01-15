@@ -290,7 +290,8 @@ const generatePresignedUrl = async (fileName: string, fileType: string, dirName:
     return {
       uploadUrl,
       fileKey,
-      fileUrl: `https://${process.env.BUCKET}.s3.amazonaws.com/${fileKey}`
+      fileUrl: `https://${process.env.BUCKET}.s3.us-east-1.amazonaws.com/${fileKey}`
+      // https://scandinavian-method-staging.s3.us-east-1.amazonaws.com/images/Videos_postural_exercises/Z1_Weak_Abs/z1_weakabs_2_plank_1.mp4
     };
   } catch (error) {
     console.error("Error generating presigned URL:", error);
