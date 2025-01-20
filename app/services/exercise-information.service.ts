@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery } from "mongoose"
+import { Document, FilterQuery } from "mongoose"
 
 import { NutritionInformationDocument } from "../interfaces/nutrition-information.interface"
 import NutritionInformation from "../models/exercise-information.model"
@@ -26,7 +26,7 @@ import NutritionInformation from "../models/exercise-information.model"
  * @param payload
  * @returns Object | null
  */
-const createNutritionInformation = async (payload: DocumentDefinition<NutritionInformationDocument>) => {
+const createNutritionInformation = async (payload: Document<NutritionInformationDocument>) => {
     try {
         const nutritionInformation: any = await NutritionInformation.find({})
 

@@ -2,7 +2,7 @@
 /* eslint-disable semi */
 /* eslint-disable no-trailing-spaces */
 /* eslint-disable eol-last */
-import { DocumentDefinition, FilterQuery, UpdateQuery } from "mongoose"
+import { Document, FilterQuery, UpdateQuery } from "mongoose"
 
 import { QuestionnaireDocument } from "../interfaces/questionnaire.interface"
 // import Exercise from "../models/exercise.model"
@@ -21,7 +21,7 @@ import exerciseListModel from "../models/exerciseList.model"
  * @param payload
  * @returns Object | null
  */
-const createQuestionnaire = async (payload: DocumentDefinition<QuestionnaireDocument>) => {
+const createQuestionnaire = async (payload: Document<QuestionnaireDocument>) => {
   try {
     const questionnaire = await Questionnaire.create(payload)
     if (questionnaire) {

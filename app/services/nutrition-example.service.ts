@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery } from "mongoose"
+import { Document, FilterQuery } from "mongoose"
 
 import { NutritionExampleMealDocument } from "../interfaces/nutrition-example-meal.interface"
 import { NutritionExamplesDocument } from "../interfaces/nutrition-examples.interface"
@@ -46,7 +46,7 @@ const listNutritionExample = async (query: FilterQuery<NutritionExamplesDocument
  * @param payload
  * @returns Object | null
  */
-const createNutritionExample = async (payload: DocumentDefinition<NutritionExamplesDocument>) => {
+const createNutritionExample = async (payload: Document<NutritionExamplesDocument>) => {
     try {
         const nutritionExample = await NutritionExample.create(payload)
         if (nutritionExample) {
@@ -64,7 +64,7 @@ const createNutritionExample = async (payload: DocumentDefinition<NutritionExamp
  * @param payload
  * @returns Object | null
  */
- const createMeal = async (payload: DocumentDefinition<NutritionExampleMealDocument>) => {
+ const createMeal = async (payload: Document<NutritionExampleMealDocument>) => {
     try {
         const exercise = await NutritionExampleMeal.create(payload)
         if (exercise) {

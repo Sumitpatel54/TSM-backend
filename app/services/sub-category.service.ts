@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery, UpdateQuery } from "mongoose"
+import { Document, FilterQuery, UpdateQuery } from "mongoose"
 
 import { SubCategoryDocument } from "../interfaces/sub-category.interface"
 import SubCategory from "../models/sub-category.model"
@@ -10,7 +10,7 @@ import SubCategory from "../models/sub-category.model"
  * @param payload
  * @returns Object | null
  */
-const createSubCategory = async (payload: DocumentDefinition<SubCategoryDocument>) => {
+const createSubCategory = async (payload: Document<SubCategoryDocument>) => {
     try {
         const subcategory = await SubCategory.create(payload)
         if (subcategory) {

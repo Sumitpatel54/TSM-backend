@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery } from "mongoose"
+import { Document, FilterQuery } from "mongoose"
 
 import { ExerciseDocument } from "../interfaces/exercise.interface"
 import { ExerciseListDocument } from "../interfaces/exerciseList.interface"
@@ -11,7 +11,7 @@ import ExerciseList from "../models/exerciseList.model"
  * @param payload
  * @returns Object | null
  */
-const createExercise = async (payload: DocumentDefinition<ExerciseDocument>) => {
+const createExercise = async (payload: Document<ExerciseDocument>) => {
     try {
         const exercise = await Exercise.create(payload)
         if (exercise) {
@@ -29,7 +29,7 @@ const createExercise = async (payload: DocumentDefinition<ExerciseDocument>) => 
  * @param payload
  * @returns Object | null
  */
- const createExerciseList = async (payload: DocumentDefinition<ExerciseListDocument>) => {
+ const createExerciseList = async (payload: Document<ExerciseListDocument>) => {
     try {
         const exercise = await ExerciseList.create(payload)
         if (exercise) {

@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery, UpdateQuery } from "mongoose"
+import { Document, FilterQuery, UpdateQuery } from "mongoose"
 
 import { CategoryDocument } from "../interfaces/category.interface"
 import Category from "../models/category.model"
@@ -10,7 +10,7 @@ import Category from "../models/category.model"
  * @param payload
  * @returns Object | null
  */
-const createCategory = async (payload: DocumentDefinition<CategoryDocument>) => {
+const createCategory = async (payload: Document<CategoryDocument>) => {
     try {
         const category = await Category.create(payload)
         if (category) {

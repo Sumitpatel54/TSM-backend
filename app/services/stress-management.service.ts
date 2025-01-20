@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery } from "mongoose"
+import { Document, FilterQuery } from "mongoose"
 
 import { StressManagementDetailDocument } from "../interfaces/stress-management-detail.interface"
 import { StressManagementDocument } from "../interfaces/stress-management.interface"
@@ -45,7 +45,7 @@ const retrieveStressManagement = async (query: FilterQuery<StressManagementDocum
  * @param payload
  * @returns Object | null
  */
-const createStressManagement = async (payload: DocumentDefinition<StressManagementDocument>) => {
+const createStressManagement = async (payload: Document<StressManagementDocument>) => {
   try {
     const stressManagement = await StressManagement.create(payload)
     if (stressManagement) {
@@ -63,7 +63,7 @@ const createStressManagement = async (payload: DocumentDefinition<StressManageme
  * @param payload
  * @returns Object | null
  */
-const createStressManagementDetail = async (payload: DocumentDefinition<StressManagementDetailDocument>) => {
+const createStressManagementDetail = async (payload: Document<StressManagementDetailDocument>) => {
   try {
     const result = await StressManagementDetail.create(payload)
     if (result) {

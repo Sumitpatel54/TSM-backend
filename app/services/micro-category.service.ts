@@ -1,4 +1,4 @@
-import { DocumentDefinition, FilterQuery, UpdateQuery } from "mongoose"
+import { Document, FilterQuery, UpdateQuery } from "mongoose"
 
 import { MicroCategoryDocument } from "../interfaces/micro-category.interface"
 import MicroCategory from "../models/micro-category.model"
@@ -10,7 +10,7 @@ import MicroCategory from "../models/micro-category.model"
  * @param payload
  * @returns Object | null
  */
-const createMicroCategory = async (payload: DocumentDefinition<MicroCategoryDocument>) => {
+const createMicroCategory = async (payload: Document<MicroCategoryDocument>) => {
     try {
         const microcategory = await MicroCategory.create(payload)
         if (microcategory) {
