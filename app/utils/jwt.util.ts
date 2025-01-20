@@ -1,28 +1,28 @@
+/* eslint-disable no-multi-spaces */
 import fs from "fs"
 import path from "path"
-
 import jwt from "jsonwebtoken"
 
 /**
- * JWT private key
+ * JWT private key and public key
  */
-const privateKey = fs.readFileSync(path.join(__dirname, "../../private.key"), "utf8")
-const publicKey : any = process.env.JWT_SECRET
+const privateKey = fs.readFileSync(path.join(__dirname, "../../private.key"), {
+    encoding: 'utf8',
+    flag: 'r'
+})
+
+// For RS256, we need both private and public keys
+const publicKey = fs.readFileSync(path.join(__dirname, "../../public.key"), {
+    encoding: 'utf8',
+    flag: 'r'
+})
 
 /**
- * Used to signed the given payload into JWT sting
- *
- * @param object object
- * @param options
- * @returns String
+ * Used to decode the JWT string
  */
 export const decode = (token: string) => {
     try {
-        /**
-         * Decode the token to get encoded details
-         */
-        const decoded = jwt.verify(token.toString(), publicKey)
-
+        const decoded = jwt.verify(token.toString(), publicKey, { algorithms: ['RS256'] })
         return {
             valid: true,
             expired: false,
@@ -38,11 +38,11 @@ export const decode = (token: string) => {
 }
 
 /**
- * Used to decode the JWT string
- *
- * @param token string
- * @returns Object
+ * Used to sign the given payload into JWT string
  */
 export const sign = (object: Object, options?: jwt.SignOptions | undefined) => {
-    return jwt.sign(object, privateKey, options)
+    return jwt.sign(object, privateKey, {
+        ...options,
+        algorithm: 'RS256'  // Explicitly specify the algorithm
+    })
 }
