@@ -39,6 +39,8 @@ import userRoutes from "./routes/user.route"
 import dailyTipRoutes from "./routes/daily-tip.routes";
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
 
+// Suppress AWS SDK v2 maintenance warning
+process.env.AWS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = 'true';
 
 dotenv.config();
 const NAMESPACE = "Scandinavian Server"
