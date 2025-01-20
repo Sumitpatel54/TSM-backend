@@ -44,6 +44,8 @@ dotenv.config();
 const NAMESPACE = "Scandinavian Server"
 const app = express()
 
+// Add this line before MongoDB connection
+mongoose.set('strictQuery', false); // Or true, depending on your needs
 
 /** Connect to Mongo */
 mongoose
