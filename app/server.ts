@@ -47,17 +47,36 @@ const app = express()
 
 /** Connect to Mongo */
 mongoose
-    .connect(config.mongo.url /* , config.mongo.options */) // useNewUrlParser, useUnifiedTopology, useFindAndModify, and useCreateIndex are no longer supported options
+    .connect(config.mongo.url, {
+        serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+        socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+    })
     .then(() => {
         logging.info(NAMESPACE, "Scandinavian DB Connected")
     })
     .catch((error: any) => {
-        logging.error(NAMESPACE, error.message, error)
+        logging.error(NAMESPACE, "MongoDB Connection Error:", error)
+        // Optionally exit the process on connection failure
+        process.exit(1)
     })
+
+// Add error handlers for the connection
+mongoose.connection.on('error', (error: any) => {
+    logging.error(NAMESPACE, "MongoDB Connection Error:", error)
+})
+
+mongoose.connection.on('disconnected', () => {
+    logging.warn(NAMESPACE, "MongoDB Disconnected. Attempting to reconnect...")
+})
+
+mongoose.connection.on('reconnected', () => {
+    logging.info(NAMESPACE, "MongoDB Reconnected")
+})
+
 mongoose.Promise = global.Promise
 
 app.use(cors({
-    origin: ['http://localhost:3000','https://tsm-prod.vercel.app','https://api.curemigraine.org' ,'https://tsm-web.vercel.app', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app', 'https://client.curemigraine.org'],
+    origin: ['http://localhost:3000', 'https://tsm-prod.vercel.app', 'https://api.curemigraine.org', 'https://tsm-web.vercel.app', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app', 'https://client.curemigraine.org'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', '*'],
     credentials: true,
@@ -103,8 +122,8 @@ app.use(fileupload({
 }));
 
 // Also increase the body parser limit
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(session({
     resave: false,
