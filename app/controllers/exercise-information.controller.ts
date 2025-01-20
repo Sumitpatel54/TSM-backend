@@ -35,7 +35,7 @@ const apiCreateExerciseInformation = async (req: Request, res: Response) => {
                 message: "Invalid Payload"
             })
         }
-        const createExerciseResponse = await NutritionInformationService.createNutritionInformation({ information: payload.information })
+        const createExerciseResponse = await NutritionInformationService.createNutritionInformation(payload)
         return res.status(200).send({
             status: true,
             data: createExerciseResponse,

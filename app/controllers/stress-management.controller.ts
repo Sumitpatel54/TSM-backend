@@ -58,7 +58,7 @@ const apiCreateStressManagement = async (req: Request, res: Response) => {
         message: "Invalid Payload"
       })
     }
-    const createResponse = await StressManagementService.createStressManagement({ categoryName: payload.categoryName })
+    const createResponse = await StressManagementService.createStressManagement(payload)
     return res.status(200).send({
       status: true,
       data: createResponse,

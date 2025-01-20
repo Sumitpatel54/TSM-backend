@@ -61,7 +61,7 @@ const apiCreateNutritionExample = async (req: Request, res: Response) => {
         message: "Invalid Payload"
       })
     }
-    const createResponse = await NutritionExampleService.createNutritionExample({ categoryName: payload.categoryName })
+    const createResponse = await NutritionExampleService.createNutritionExample(payload)
     return res.status(200).send({
       status: true,
       data: createResponse,
@@ -163,7 +163,7 @@ const searchMeals = async (req: Request, res: Response) => {
     const perPage: any = Number(req.query.perPage) || 10
     const categoryId: any = req.query.categoryId
     const searchString: any = req.query.searchString
-    const dietType:any = req.query.dietType
+    const dietType: any = req.query.dietType
     const mealType: any = req.query.mealType
     // const mealType: any = req.query.mealType ? Number(req.query.mealType) : ""
     const sortField: any = req.query.sortField

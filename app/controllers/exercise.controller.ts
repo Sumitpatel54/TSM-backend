@@ -18,7 +18,7 @@ const apiCreateExercise = async (req: Request, res: Response) => {
         message: "Invalid Payload"
       })
     }
-    const createExerciseResponse = await ExerciseService.createExercise({ title: payload.title, tags: [] })
+    const createExerciseResponse = await ExerciseService.createExercise(payload)
     return res.status(200).send({
       status: true,
       data: createExerciseResponse,
@@ -293,7 +293,7 @@ const apiUpdateExerciseList = async (req: Request, res: Response) => {
     } else if (file === null || file === "null") {
       article.video = null
     }
-    
+
     if (title) {
       article.title = title
     }
