@@ -10,22 +10,22 @@ import { sign } from "../utils/jwt.util"
  * @param audience
  * @returns Boolean
  */
- export function createAccessToken({
-    user,
-    issuer
-  }: {
-    user: Omit<UserDocument, "password"> | LeanDocument<Omit<UserDocument, "password">>
-    issuer: string | undefined
-  }) {
-    const options = {
-      expiresIn: config.jwt.accessTokenExpiresIn,
-      algorithm: "RS256"
-    } as jwt.SignOptions
+export function createAccessToken({
+  user,
+  issuer
+}: {
+  user: Omit<UserDocument, "password"> | LeanDocument<Omit<UserDocument, "password">>
+  issuer: string | undefined
+}) {
+  const options = {
+    expiresIn: config.jwt.accessTokenExpiresIn,
+    algorithm: "HS256"
+  } as jwt.SignOptions
 
-    if (typeof issuer !== "undefined") {
-      Object.assign(options, { issuer })
-    }
-
-    // BUild and return new accessToken
-    return sign({ sub: `${user._id}`, id: `${user._id}`, role: user.role }, options)
+  if (typeof issuer !== "undefined") {
+    Object.assign(options, { issuer })
   }
+
+  // BUild and return new accessToken
+  return sign({ sub: `${user._id}`, id: `${user._id}`, role: user.role }, options)
+}
