@@ -92,6 +92,8 @@ definitions:
           - cp .env.temp .env
           - npm run build
           - cp .env build/.env
+          - cp public.key build/public.key
+          - cp private.key build/private.key
           - zip -r build.zip appspec.yml package.json build scripts
         artifacts:
           - build.zip
