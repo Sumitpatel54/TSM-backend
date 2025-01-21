@@ -38,4 +38,5 @@ jobs:
             cp /var/www/backend/.env /var/www/backend/build/.env
             cp /var/www/backend/.env /var/www/backend/build/app/.env
             cp /var/www/backend/private.key /var/www/backend/build/
+            cp  /var/www/backend/public.key /var/www/backend/build/
             pm2 restart all 
