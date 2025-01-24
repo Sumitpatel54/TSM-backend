@@ -291,7 +291,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
 
       intent = await stripe.setupIntents.create(setupIntentData)
     } else if (paymentType === 'ONE_TIME_PURCHASE') {
-      const FRONTEND_URL = process.env.FRONTEND_URL || 'https://client.curemigraine.org'
+      const FRONTEND_URL = 'https://client.curemigraine.org'
       const session = await stripe.checkout.sessions.create({
         customer: user?.stripeCustomerId,
         line_items: [{
