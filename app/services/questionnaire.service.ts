@@ -773,7 +773,7 @@ async function getExerciseList(userId: string) {
 
 
 function exerciseSeederInTemplate(templates: any[], exercises: any[], usedExercises: Set<string> = new Set()) {
-  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday','sunday'];
   if (exercises.length === 0) {
     return;
   }
