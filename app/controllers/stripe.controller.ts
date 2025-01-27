@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable no-empty */
 /* eslint-disable no-trailing-spaces */
 /* eslint-disable semi */
@@ -232,7 +233,6 @@ const upgradeSubscription = async (req: Request, res: Response) => {
 */
 const checkout = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
     const userId: any = req.user?.id
     let { paymentType, planId, priceId, amount, currency } = req.body
     let intent: Stripe.SetupIntent | Stripe.PaymentIntent | undefined
@@ -258,9 +258,6 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid currency to process further'))
     }
 
-    // check for empty values
-    //CommonFunctions.validateRequestForEmptyValues({ planId, priceId, amount, currency })
-
     // get user
     let user: any = await UserService.findUser({ _id: userId })
     user = user?.toObject()
@@ -277,21 +274,42 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       }
     }
 
+    const FRONTEND_URL = 'https://client.curemigraine.org'
+
     if (paymentType === 'SUBSCRIPTION') {
-      let setupIntentData: { [key: string]: any } = {
+      const session = await stripe.checkout.sessions.create({
         customer: user?.stripeCustomerId,
+        line_items: [{
+          price: priceId,
+          quantity: 1,
+        }],
+        mode: 'subscription',
+        allow_promotion_codes: true,
         metadata: {
           userId,
           action: "SUBSCRIPTION_MADE",
           gateway: "STRIPE",
           product: planId,
           price: priceId,
-        }
+        },
+        success_url: `${FRONTEND_URL}/payment-success`,
+        cancel_url: `${FRONTEND_URL}/payment`,
+      });
+
+      try {
+        await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
+      } catch (error) {
+        console.log(error)
       }
 
-      intent = await stripe.setupIntents.create(setupIntentData)
+      return res.status(200).send({
+        status: true,
+        data: {
+          sessionUrl: session.url
+        }
+      });
+
     } else if (paymentType === 'ONE_TIME_PURCHASE') {
-      const FRONTEND_URL = 'https://client.curemigraine.org'
       const session = await stripe.checkout.sessions.create({
         customer: user?.stripeCustomerId,
         line_items: [{
@@ -314,9 +332,8 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       try {
         await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
       } catch (error) {
-  
+        console.log(error)
       }
-
 
       return res.status(200).send({
         status: true,
@@ -324,22 +341,6 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
           sessionUrl: session.url
         }
       });
-    }
-
-    // this block is added for staging purpose 
-    try {
-      await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
-    } catch (error) {
-
-    }
-
-    if (intent) {
-      return res.status(200).send({
-        status: true,
-        data: {
-          intent,
-        }
-      })
     }
 
     throw new Error(`Sorry some errors occurred while creating payment intent`)
@@ -350,109 +351,6 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
     })
   }
 }
-// const checkout = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-
-//     const userId: any = req.user?.id
-//     let { paymentType, planId, priceId, amount, currency } = req.body
-//     let intent: Stripe.SetupIntent | Stripe.PaymentIntent | undefined
-
-//     // validate paymentType
-//     if (paymentType !== "SUBSCRIPTION" && paymentType !== "ONE_TIME_PURCHASE") {
-//       return next(new HttpException(HttpStatusCode.BAD_REQUEST, "paymentType has to either of this two: 'SUBSCRIPTION' or 'ONE_TIME_PURCHASE'"))
-//     }
-
-//     if (!planId) {
-//       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid planId to process further'))
-//     }
-
-//     if (!priceId) {
-//       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid priceId to process further'))
-//     }
-
-//     if (!amount) {
-//       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid amount to process further'))
-//     }
-
-//     if (!currency) {
-//       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid currency to process further'))
-//     }
-
-//     // check for empty values
-//     //CommonFunctions.validateRequestForEmptyValues({ planId, priceId, amount, currency })
-
-//     // get user
-//     let user: any = await UserService.findUser({ _id: userId })
-//     user = user?.toObject()
-
-//     // create stripe customer
-//     if (!user.stripeCustomerId) {
-//       try {
-//         const customer = await stripe.customers.create({ email: user.email })
-//         await UserService.updateUser(userId, { stripeCustomerId: customer.id })
-//         user.stripeCustomerId = customer.id
-//       }
-//       catch (error: any) {
-//         console.log(error)
-//       }
-//     }
-
-//     if (paymentType === 'SUBSCRIPTION') {
-//       let setupIntentData: { [key: string]: any } = {
-//         customer: user?.stripeCustomerId,
-//         metadata: {
-//           userId,
-//           action: "SUBSCRIPTION_MADE",
-//           gateway: "STRIPE",
-//           product: planId,
-//           price: priceId,
-//         }
-//       }
-
-//       intent = await stripe.setupIntents.create(setupIntentData)
-//     } else if (paymentType === 'ONE_TIME_PURCHASE') {
-//       type SetupFutureUsage = 'off_session' | 'on_session'
-//       let paymentIntentData: Stripe.PaymentIntentCreateParams = {
-//         'setup_future_usage': 'off_session' as SetupFutureUsage,
-//         "customer": user?.stripeCustomerId,
-//         "metadata": {
-//           userId,
-//           action: "ONE_TIME_PAYMENT",
-//           gateway: "STRIPE",
-//           product: planId,
-//           price: priceId,
-//         },
-//         amount: (amount * 100),
-//         currency,
-//       }
-
-//       intent = await stripe.paymentIntents.create(paymentIntentData)
-//     }
-
-//     // this block is added for staging purpose 
-//     try {
-//       await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
-//     } catch (error) {
-
-//     }
-
-//     if (intent) {
-//       return res.status(200).send({
-//         status: true,
-//         data: {
-//           intent
-//         }
-//       })
-//     }
-
-//     throw new Error(`Sorry some errors occurred while creating payment intent`)
-//   } catch (error: any) {
-//     return res.status(500).send({
-//       status: false,
-//       message: error.message
-//     })
-//   }
-// }
 
 const validateCoupon = async (req: Request, res: Response) => {
   try {
