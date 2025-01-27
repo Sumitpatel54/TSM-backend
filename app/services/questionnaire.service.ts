@@ -545,6 +545,7 @@ function exerciseSeederInTemplate(templates: any[], exercises: any[], usedExerci
   }
 
   if (exercises.length === 1) {
+    // If only one exercise, use it for all slots
     for (const i of templates) {
       for (const j in i['days']) {
         if (days.includes(j)) {
@@ -674,17 +675,17 @@ async function programGeneration(userId: string) {
 
       exerciseSeederInTemplate(templates, otherExercises, usedExerciseIds);
     } else {
-      // New logic for when user answered "No" or has no postural exercises
-      // Get all postural exercises
+      // Only modify this part for the "No" case
       const allPosturalExercises = await exerciseListModel.find({
         exerciseParentName: "Postural"
       });
 
-      // Randomly select 4 exercises
+      // Create array of 4 random exercises
       const randomExercises = [];
       const usedIndices = new Set();
 
-      while (randomExercises.length < 4 && randomExercises.length < allPosturalExercises.length) {
+      // Ensure we get exactly 4 exercises
+      while (randomExercises.length < 4 && allPosturalExercises.length > 0) {
         const randomIndex = Math.floor(Math.random() * allPosturalExercises.length);
         if (!usedIndices.has(randomIndex)) {
           usedIndices.add(randomIndex);
@@ -692,8 +693,18 @@ async function programGeneration(userId: string) {
         }
       }
 
-      // Seed these exercises into the template
-      exerciseSeederInTemplate(templates, randomExercises);
+      // If we have less than 4 exercises, duplicate the last one to fill
+      while (randomExercises.length < 4) {
+        randomExercises.push(randomExercises[randomExercises.length - 1]);
+      }
+
+      // Use the existing exerciseSeederInTemplate function
+      // But pass the array of 4 exercises we created
+      for (const template of templates) {
+        for (const day in template.days) {
+          template.days[day] = [...randomExercises]; // Directly set all 4 exercises
+        }
+      }
     }
 
     await Program.updateOne({ userId: userId }, { $set: { templates: templates } });
