@@ -12,7 +12,12 @@ import CommonFunctions from "../utilities/common"
 import User from "../models/user.model"
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
-  apiVersion: '2022-08-01',
+  apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion || '2020-08-27',
+  typescript: true,
+  appInfo: {
+    name: 'TSM Payment',
+    version: '1.0.0'
+  }
 })
 
 const getAllProductsAndPlans = async (req: Request, res: Response) => {
