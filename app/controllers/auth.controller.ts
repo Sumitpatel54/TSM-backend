@@ -174,7 +174,7 @@ const forgetPassword = async (req: Request, res: Response) => {
     let link = `${config.API_URL}/reset-password/${user.resetPasswordToken}`
     let html = `
     <p>Hi ${user.firstName},</p>
-    <p>No stress! Remembering passwords can be pain in the neck - which for some is a trigger and for some it is a symptom of migraine. Let’s get you back on track so you can continue your journey to a migraine-free life.</p>
+    <p>No stress! Remembering passwords can be pain in the neck - which for some is a trigger and for some it is a symptom of migraine. Let's get you back on track so you can continue your journey to a migraine-free life.</p>
     <p>Click the link below to reset your password:</p>
     <a href="${link}">${link}</a>
     <p>Remember, passwords are like toothbrushes – you should change them often and never share them with anyone else!</p>
@@ -565,48 +565,58 @@ interface GoogleUser {
 
 passport.use(new GoogleStrategy.Strategy({
   callbackURL: `${config.API_URL}/auth/callback/google`,
-  // callbackURL: `http://localhost:8000/auth/callback/google`,
   clientID: process.env.GOOGLE_CLIENT_ID || '',
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
 }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
   try {
     const { id: googleId, _json } = profile
 
-    let user: any
-    user = await User.findOne({ 'google.id': googleId })
+    // First try to find user by Google ID
+    let user: any = await User.findOne({ 'google.id': googleId })
 
-    if (user) {
-      // Update the access token
-      (user.google as GoogleUser).token = accessToken;
-      await user.save()
-    } else {
-      // Create a new user
-      user = new User({
-        method: 'google',
-        email: _json.email,
-        firstName: _json.given_name,
-        lastName: _json.family_name,
-        google: {
+    if (!user) {
+      // If not found by Google ID, try to find by email
+      user = await User.findOne({ email: _json.email })
+
+      if (user) {
+        // If user exists with email but no Google ID, update their Google credentials
+        user.method = user.method || 'google'
+        user.google = {
           id: googleId,
           token: accessToken
-        },
-        isVerified: true,
-        isActive: true,
-        role: 'patient'
-      })
+        }
+        user.isVerified = true
+        await user.save()
+      } else {
+        // Create a new user if neither Google ID nor email exists
+        user = new User({
+          method: 'google',
+          email: _json.email,
+          firstName: _json.given_name,
+          lastName: _json.family_name,
+          google: {
+            id: googleId,
+            token: accessToken
+          },
+          isVerified: true,
+          isActive: true,
+          role: 'patient'
+        })
+        await user.save()
+      }
+    } else {
+      // Update the access token for existing Google user
+      (user.google as GoogleUser).token = accessToken
       await user.save()
     }
 
-    // Login successful, write toke, and send back user
+    // Login successful, write token, and send back user
     let token = user.generateJWT()
 
-    // Redirect to frontend with a success parameter
-    // const frontendURL = 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app'; // Adjust this as needed
-    const frontendURL = 'https://client.curemigraine.org'; // Adjust this as needed
-    // const frontendURL = 'http://localhost:3000'; // Adjust this as needed
-    return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` });
+    const frontendURL = 'https://client.curemigraine.org'
+    return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` })
   } catch (error) {
-    return done(error, false);
+    return done(error, false)
   }
 }))
 
@@ -640,7 +650,7 @@ const tempTokens = new Map();
 const googleCallback = async (req: Request, res: Response) => {
   try {
     console.log('Entering googleCallback function');
-    
+
     if (!req.user) {
       console.log('No user data in request');
       return res.redirect('https://client.curemigraine.org/home?error=no_user_data');
@@ -656,7 +666,7 @@ const googleCallback = async (req: Request, res: Response) => {
 
     // Generate a temporary token
     const tempToken = uuidv4();
-    
+
     // Create the temp token document
     const tempTokenDoc = new TempToken({
       token: tempToken,
@@ -693,10 +703,10 @@ const getGoogleUserData = async (req: Request, res: Response) => {
   try {
     console.log('Entering getGoogleUserData function');
     const { googleToken } = req.query;
-    
+
     if (!googleToken || typeof googleToken !== 'string') {
       console.log('Invalid googleToken');
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: false,
         message: 'Invalid token provided'
       });
@@ -704,10 +714,10 @@ const getGoogleUserData = async (req: Request, res: Response) => {
 
     // Find the temporary token
     const tempTokenDoc = await TempToken.findOne({ token: googleToken });
-    
+
     if (!tempTokenDoc) {
       console.log('Token not found:', googleToken);
-      return res.status(404).json({ 
+      return res.status(404).json({
         status: false,
         message: 'Token not found or expired'
       });
@@ -725,7 +735,7 @@ const getGoogleUserData = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error in getGoogleUserData:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       status: false,
       message: 'Internal server error'
     });
