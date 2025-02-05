@@ -427,34 +427,7 @@ const generateTemplatesArrayForFirstTime = (exerciseList: any) => {
 }
 
 
-const generateProgramForUser = async (userId: any) => {
 
-  let problems_ = []
-  let answers_ = []
-
-  // console.log("user id=", userId);
-
-  let user = await User.findById(userId)
-  if (!user) throw new Error("Cannot generate exercise program. User does not exist")
-
-  user = user.toObject()
-
-  // cache user provided answers
-  let answers: any = user.questionnaireAnswers
-  if (!answers || Object.keys(answers).length === 0) throw new Error("User has not provided any answers.")
-  answers_ = Object.values(answers)
-  problems_ = [...answers_]
-
-
-  // Exercises from phase 1 from 1 problem
-  let generalExerciseList = await getAllGeneralExercises()
-
-
-  let templates: any = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates
-  templates = removeTemplateDuplicates(templates)
-
-  await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
-}
 
 /**
  * @summary - Generate an exercise program for a user
@@ -600,6 +573,35 @@ async function fphOrRsExerciseGetAndSeed(exerciseList: any[], templates: any[], 
   } catch (error: any) {
     console.log(error.message);
   }
+}
+
+const generateProgramForUser = async (userId: any) => {
+
+  let problems_ = []
+  let answers_ = []
+
+  // console.log("user id=", userId);
+
+  let user = await User.findById(userId)
+  if (!user) throw new Error("Cannot generate exercise program. User does not exist")
+
+  user = user.toObject()
+
+  // cache user provided answers
+  let answers: any = user.questionnaireAnswers
+  if (!answers || Object.keys(answers).length === 0) throw new Error("User has not provided any answers.")
+  answers_ = Object.values(answers)
+  problems_ = [...answers_]
+
+
+  // Exercises from phase 1 from 1 problem
+  let generalExerciseList = await getAllGeneralExercises()
+
+
+  let templates: any = generateTemplatesArrayForFirstTime(generalExerciseList)?.templates
+  templates = removeTemplateDuplicates(templates)
+
+  await Program.findOneAndUpdate({ userId }, { $set: { templates, userId } }, { upsert: true })
 }
 
 async function programGeneration(userId: string) {
