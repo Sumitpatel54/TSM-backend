@@ -606,6 +606,9 @@ const generateProgramForUser = async (userId: any) => {
 
 async function programGeneration(userId: string) {
   try {
+    // First generate general exercises program
+    await generateProgramForUser(userId);
+
     const exerciseList: any = await getExerciseList(userId);
     if (exerciseList.length === 0) return "No exercises found";
 
@@ -655,29 +658,24 @@ async function programGeneration(userId: string) {
 
       const otherExercises = [];
       for (const exercise of exerciseList) {
-
         if (exercise.exercise === "Postural" && exercise.answer === "Yes") {
           const tag = exercise.exerciseTag;
 
           if (specificTags.includes(tag) && Array.isArray(tagExercises[tag])) {
-
             for (const taggedExercise of tagExercises[tag]) {
               if (!usedExerciseIds.has(taggedExercise._id)) {
                 otherExercises.push(taggedExercise);
                 usedExerciseIds.add(taggedExercise._id);
               }
             }
-          } else {
-            // console.log(`No exercises found or not a specific tag: ${tag}`);
           }
-        } else {
-          // console.log(`Skipped exercise not selected or not postural:`, exercise);
         }
       }
 
+      // Add postural exercises to existing templates
       exerciseSeederInTemplate(templates, otherExercises, usedExerciseIds);
     } else {
-      // Only modify this part for the "No" case
+      // For "No" case, add 4 random postural exercises
       const allPosturalExercises = await exerciseListModel.find({
         exerciseParentName: "Postural"
       });
@@ -686,7 +684,6 @@ async function programGeneration(userId: string) {
       const randomExercises = [];
       const usedIndices = new Set();
 
-      // Ensure we get exactly 4 exercises
       while (randomExercises.length < 4 && allPosturalExercises.length > 0) {
         const randomIndex = Math.floor(Math.random() * allPosturalExercises.length);
         if (!usedIndices.has(randomIndex)) {
@@ -695,20 +692,15 @@ async function programGeneration(userId: string) {
         }
       }
 
-      // If we have less than 4 exercises, duplicate the last one to fill
       while (randomExercises.length < 4) {
         randomExercises.push(randomExercises[randomExercises.length - 1]);
       }
 
-      // Use the existing exerciseSeederInTemplate function
-      // But pass the array of 4 exercises we created
-      for (const template of templates) {
-        for (const day in template.days) {
-          template.days[day] = [...randomExercises]; // Directly set all 4 exercises
-        }
-      }
+      // Add random postural exercises to existing templates
+      exerciseSeederInTemplate(templates, randomExercises);
     }
 
+    // Update the program with both general and postural exercises
     await Program.updateOne({ userId: userId }, { $set: { templates: templates } });
     return "Program is created";
   } catch (error: any) {
