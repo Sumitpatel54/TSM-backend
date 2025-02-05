@@ -66,16 +66,16 @@ const getTimestampFromDate = (dateToUse: string, timeString: string) => {
 const validateAWSCredentials = () => {
   const required = ['BUCKET', 'ACCESS_KEY_ID', 'SECRET_ACCESS_KEY'];
   const missing = required.filter(key => !process.env[key]);
-  
+
   if (missing.length > 0) {
     throw new Error(`Missing required AWS credentials: ${missing.join(', ')}`);
   }
-  
+
   // Validate credential format
   if (process.env.ACCESS_KEY_ID?.length !== 20) {
     throw new Error('Invalid ACCESS_KEY_ID format');
   }
-  
+
   if (process.env.SECRET_ACCESS_KEY?.length !== 40) {
     throw new Error('Invalid SECRET_ACCESS_KEY format');
   }
@@ -85,9 +85,9 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
   try {
     // Validate AWS credentials first
     validateAWSCredentials();
-    
+
     const filesArray = Array.isArray(files) ? files : [files];
-    
+
     // Configure AWS SDK
     AWS.config.update({
       accessKeyId: process.env.ACCESS_KEY_ID,
@@ -118,8 +118,8 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
         params: {
           Bucket: process.env.BUCKET as string,
           Key: fileFullName,
-          Body: file.tempFilePath ? 
-            require('fs').createReadStream(file.tempFilePath) : 
+          Body: file.tempFilePath ?
+            require('fs').createReadStream(file.tempFilePath) :
             file.data,
         }
       });
@@ -131,7 +131,7 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
 
       const result = await upload.promise();
       console.log(`Upload completed for ${fileName}`);
-      
+
       return result.Location; // Return the public URL of the uploaded file
     });
 
@@ -153,13 +153,13 @@ const getUploadURLWithDir = async (files: any | any[], dirName: string) => {
 
 
 
-const getUploadURL = async (files: any | any[] ) => {
+const getUploadURL = async (files: any | any[]) => {
   try {
     const filesArray = Array.isArray(files) ? files : [files];
-    
+
     const s3 = new AWS.S3({
-          accessKeyId: process.env.ACCESS_KEY_ID,
-          secretAccessKey: process.env.SECRET_ACCESS_KEY
+      accessKeyId: process.env.ACCESS_KEY_ID,
+      secretAccessKey: process.env.SECRET_ACCESS_KEY,
     })
 
     AWS.config.update({ region: 'us-east-1' });
@@ -175,17 +175,29 @@ const getUploadURL = async (files: any | any[] ) => {
       const fileName = `${now}.${fileExt}`;
       const fileFullName = `${filePath}${fileName}`;
 
+      // Add proper content type based on file extension
+      let contentType = 'application/octet-stream';
+      if (fileExt.toLowerCase() === 'mp4') {
+        contentType = 'video/mp4';
+      } else if (['jpg', 'jpeg'].includes(fileExt.toLowerCase())) {
+        contentType = 'image/jpeg';
+      } else if (fileExt.toLowerCase() === 'png') {
+        contentType = 'image/png';
+      }
+
       const s3Params: AWS.S3.PutObjectRequest = {
         Bucket: process.env.BUCKET as string,
         Key: fileFullName,
         Body: buffer,
+        ContentType: contentType,
+        // ACL: 'public-read' // Ensure the file is publicly readable
       };
 
       await s3.upload(s3Params).promise();
-      return `https://${process.env.BUCKET}.s3.amazonaws.com/${fileFullName}`;
+      return `https://${process.env.BUCKET}.s3.us-east-1.amazonaws.com/${fileFullName}`;
     });
 
-    const urls:any = await Promise.all(uploadPromises);
+    const urls: any = await Promise.all(uploadPromises);
     return urls;
   } catch (error) {
     console.error("Error in getUploadURL:", error);
@@ -266,7 +278,7 @@ const validateRequestForEmptyValues = (inObj: any) => {
 const generatePresignedUrl = async (fileName: string, fileType: string, dirName: string) => {
   try {
     validateAWSCredentials();
-    
+
     AWS.config.update({
       accessKeyId: process.env.ACCESS_KEY_ID,
       secretAccessKey: process.env.SECRET_ACCESS_KEY,
@@ -286,7 +298,7 @@ const generatePresignedUrl = async (fileName: string, fileType: string, dirName:
     };
 
     const uploadUrl = await s3.getSignedUrlPromise('putObject', params);
-    
+
     return {
       uploadUrl,
       fileKey,
@@ -299,4 +311,4 @@ const generatePresignedUrl = async (fileName: string, fileType: string, dirName:
   }
 };
 
-export default { geFileURL, getTotalPages, stringIsAValidUrl, getTimestampFromDate, getUploadURL, isNumber, validateRequestForEmptyValues, getUploadURLWithDir,validateAWSCredentials, generatePresignedUrl }
+export default { geFileURL, getTotalPages, stringIsAValidUrl, getTimestampFromDate, getUploadURL, isNumber, validateRequestForEmptyValues, getUploadURLWithDir, validateAWSCredentials, generatePresignedUrl }

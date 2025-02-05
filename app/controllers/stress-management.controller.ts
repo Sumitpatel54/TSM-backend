@@ -98,10 +98,24 @@ const apiAddStressManagementDetail = async (req: Request, res: Response) => {
     }
     retrieveStressManagementResponse = retrieveStressManagementResponse.toObject()
 
-    const stressManagement: any = { categoryName: retrieveStressManagementResponse.categoryName, title: retrieveStressManagementResponse.title, categoryId: id }
+    const stressManagement: any = {
+      categoryName: retrieveStressManagementResponse.categoryName,
+      title: retrieveStressManagementResponse.title,
+      categoryId: id
+    }
 
-    if (file) stressManagement["video"] = await CommonFunctions.getUploadURL(file)
-    if (image) stressManagement["image"] = await CommonFunctions.getUploadURL(image)
+    // Get the first URL from the array for both video and image
+    if (file) {
+      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, 'STRESS')
+      // const videoUrls = await CommonFunctions.getUploadURL(file)
+      stressManagement["video"] = Array.isArray(videoUrls) ? videoUrls[0] : videoUrls
+    }
+
+    if (image) {
+      const imageUrls = await CommonFunctions.getUploadURL(image)
+      stressManagement["image"] = Array.isArray(imageUrls) ? imageUrls[0] : imageUrls
+    }
+
     if (description) stressManagement["description"] = description
     if (title) stressManagement["title"] = title
 
@@ -113,6 +127,7 @@ const apiAddStressManagementDetail = async (req: Request, res: Response) => {
       message: "Stress management detail Record Created"
     })
   } catch (error: any) {
+    console.log('error ==', error)
     return res.status(statusCode).send({
       status: false,
       message: error.message
@@ -246,7 +261,12 @@ const apiUpdateStressManagementDetail = async (req: Request, res: Response) => {
       }
     }
 
-    if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) detailObject["video"] = await CommonFunctions.getUploadURL(file)
+    // if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) detailObject["video"] = await CommonFunctions.getUploadURLWithDir(file, 'STRESS')
+    if (file) {
+      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, 'STRESS')
+      // const videoUrls = await CommonFunctions.getUploadURL(file)
+      detailObject["video"] = Array.isArray(videoUrls) ? videoUrls[0] : videoUrls
+    }
     else if (file === null || file === "null") detailObject["video"] = null
 
     if (image && image !== "null") detailObject["image"] = await CommonFunctions.getUploadURL(image)
