@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 import HttpStatusCode from "http-status-codes"
 import mongoose from "mongoose"
 // import { v4 } from "uuid"
@@ -112,7 +113,7 @@ const apiAddStressManagementDetail = async (req: Request, res: Response) => {
     }
 
     if (image) {
-      const imageUrls = await CommonFunctions.getUploadURL(image)
+      const imageUrls = await CommonFunctions.getUploadURLWithDir(image, 'STRESS')
       stressManagement["image"] = Array.isArray(imageUrls) ? imageUrls[0] : imageUrls
     }
 
@@ -245,32 +246,48 @@ const apiUpdateStressManagementDetail = async (req: Request, res: Response) => {
   const title = req.body.title
   const detailObject: any = {}
   const stressObject: any = { $set: {} }
-  console.log("file", file)
 
   try {
     // update the category name
     if (categoryName) {
       stressObject["$set"]["categoryName"] = categoryName
       await StressManagementService.findAndUpdateManyStressManagementDetail(id, stressObject)
-
       try {
         await StressManagementService.updateStressManagement(id, stressObject)
-      }
-      catch (e) {
+      } catch (e) {
         console.log(e)
       }
     }
 
-    // if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) detailObject["video"] = await CommonFunctions.getUploadURLWithDir(file, 'STRESS')
-    if (file) {
-      const videoUrls = await CommonFunctions.getUploadURLWithDir(file, 'STRESS')
-      // const videoUrls = await CommonFunctions.getUploadURL(file)
-      detailObject["video"] = Array.isArray(videoUrls) ? videoUrls[0] : videoUrls
+    // Handle video update
+    if (file && file !== "null") {
+      if (file.mimetype) {
+        const videoUrls = await CommonFunctions.getUploadURLWithDir(file, 'STRESS')
+        detailObject["video"] = Array.isArray(videoUrls) ? videoUrls[0] : videoUrls
+      } else if (typeof file === 'string') {
+        detailObject["video"] = file
+      }
+    } else {
+      // Only update video field if it's explicitly set to null
+      if (file === "null" || file === null) {
+        detailObject["video"] = null
+      }
     }
-    else if (file === null || file === "null") detailObject["video"] = null
 
-    if (image && image !== "null") detailObject["image"] = await CommonFunctions.getUploadURL(image)
-    else if (image === null || image === "null") detailObject["image"] = null
+    // Handle image update
+    if (image && image !== "null") {
+      if (image.mimetype) {
+        const imageUrls = await CommonFunctions.getUploadURLWithDir(image, 'STRESS')
+        detailObject["image"] = Array.isArray(imageUrls) ? imageUrls[0] : imageUrls
+      } else if (typeof image === 'string') {
+        detailObject["image"] = image
+      }
+    } else {
+      // Only update image field if it's explicitly set to null
+      if (image === "null" || image === null) {
+        detailObject["image"] = null
+      }
+    }
 
     if (description) detailObject["description"] = description
     if (title) detailObject["title"] = title
@@ -287,6 +304,7 @@ const apiUpdateStressManagementDetail = async (req: Request, res: Response) => {
       message: "Stress management detail Record Updated"
     })
   } catch (error: any) {
+    console.error("Error in apiUpdateStressManagementDetail:", error);
     return res.status(statusCode).send({
       status: false,
       message: error.message
