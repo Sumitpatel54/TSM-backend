@@ -111,8 +111,8 @@ const apiAddMeal = async (req: Request, res: Response) => {
     const mealObject: any = { meal, categoryName, categoryId: id }
 
     if (file) {
-      const image = await CommonFunctions.getUploadURL(file)
-      mealObject["image"] = image
+      const image = await CommonFunctions.getUploadURLWithDir(file, 'NUTRITION')
+      mealObject["image"] = Array.isArray(image) ? image[0] : image
     }
 
     if (title) {
@@ -327,8 +327,8 @@ const apiUpdateNutritionExampleMeal = async (req: Request, res: Response) => {
     }
 
     if (file && file !== "null" && !CommonFunctions.stringIsAValidUrl(file)) {
-      const image = await CommonFunctions.getUploadURL(file)
-      mealObject["image"] = image
+      const image = await CommonFunctions.getUploadURLWithDir(file, 'NUTRITION')
+      mealObject["image"] = Array.isArray(image) ? image[0] : image
     }
     else if (file === null || file === "null") {
       mealObject["image"] = null
