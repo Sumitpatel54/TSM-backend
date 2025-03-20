@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable no-empty */
 /* eslint-disable no-trailing-spaces */
@@ -10,6 +11,7 @@ import StripeService from "../services/stripe.service"
 import UserService from "../services/user.service"
 import CommonFunctions from "../utilities/common"
 import User from "../models/user.model"
+import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
   apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion || '2020-08-27',
@@ -297,15 +299,9 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
           product: planId,
           price: priceId,
         },
-        success_url: `${FRONTEND_URL}/payment-success`,
-        cancel_url: `${FRONTEND_URL}/payment`,
+        success_url: `${FRONTEND_URL}/payment-success?userId=${userId}&status=success`,
+        cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
       });
-
-      try {
-        await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
-      } catch (error) {
-        console.log(error)
-      }
 
       return res.status(200).send({
         status: true,
@@ -330,15 +326,9 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
           product: planId,
           price: priceId,
         },
-        success_url: `${FRONTEND_URL}/payment-success`,
-        cancel_url: `${FRONTEND_URL}/payment`,
+        success_url: `${FRONTEND_URL}/payment-success?userId=${userId}&status=success`,
+        cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
       });
-
-      try {
-        await User.findByIdAndUpdate(userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
-      } catch (error) {
-        console.log(error)
-      }
 
       return res.status(200).send({
         status: true,
@@ -423,4 +413,122 @@ const listAvailableCoupons = async (req: Request, res: Response) => {
   }
 };
 
-export default { getAllProductsAndPlans, createSubscription, chargeCard, unsubscribeUser, upgradeSubscription, checkout, validateCoupon, listAvailableCoupons }
+/**
+ * Manual endpoint to update isPaid flag (for testing only)
+ * @param req Request
+ * @param res Response
+ * @returns JSON
+ */
+const manualUpdatePaidStatus = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).send({
+        status: false,
+        message: 'Please provide a userId'
+      });
+    }
+
+    // Find user
+    const user = await UserService.findUser({ _id: userId });
+    if (!user) {
+      return res.status(404).send({
+        status: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update user
+    const updatedUser = await UserService.updateUser(userId, {
+      isPaid: true,
+      exerciseStartDate: new Date()
+    });
+
+    return res.status(200).send({
+      status: true,
+      message: 'User payment status updated successfully',
+      data: {
+        userId,
+        isPaid: true,
+        exerciseStartDate: new Date()
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).send({
+      status: false,
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Handle payment confirmation when user returns from successful payment
+ * @param req Request
+ * @param res Response
+ * @returns JSON
+ */
+const confirmPaymentSuccess = async (req: Request, res: Response) => {
+  try {
+    const { userId, status } = req.body;
+
+    // Validate required parameters
+    if (!userId || !status) {
+      return res.status(400).send({
+        status: false,
+        message: 'Missing required parameters: userId and status'
+      });
+    }
+
+    // Only update if status is 'success'
+    if (status !== 'success') {
+      return res.status(200).send({
+        status: true,
+        message: 'No updates made - payment was not successful',
+        data: { updated: false }
+      });
+    }
+
+    // Find user
+    const user = await UserService.findUser({ _id: userId });
+    if (!user) {
+      return res.status(404).send({
+        status: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update user's isPaid status and exerciseStartDate
+    const updatedUser = await UserService.updateUser(userId, {
+      isPaid: true,
+      exerciseStartDate: new Date()
+    });
+
+    // Send email notification
+    addJobSendMailQuestionLinkCreation(
+      {
+        userId: userId,
+        email: user.email,
+        userName: `${user.firstName} ${user.lastName}`
+      },
+      userId
+    );
+
+    return res.status(200).send({
+      status: true,
+      message: 'Payment confirmed successfully',
+      data: {
+        userId,
+        isPaid: true,
+        updated: true
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).send({
+      status: false,
+      message: error.message
+    });
+  }
+};
+
+export default { getAllProductsAndPlans, createSubscription, chargeCard, unsubscribeUser, upgradeSubscription, checkout, validateCoupon, listAvailableCoupons, manualUpdatePaidStatus, confirmPaymentSuccess }

@@ -1,4 +1,4 @@
-
+/* eslint-disable unused-imports/no-unused-imports */
 import { NextFunction, Response } from "express"
 import HttpStatusCode from "http-status-codes"
 import Stripe from "stripe"
@@ -7,6 +7,7 @@ import UserService from "../services/user.service"
 import config from "../configurations/config"
 import HttpException from "../exceptions/HttpException"
 import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
+import User from "../models/user.model"
 
 const stripe = new Stripe(config.stripe.API_SECRET, {
     apiVersion: config.stripe.API_VERSION as Stripe.LatestApiVersion //@ts-ignore
@@ -21,25 +22,73 @@ const endpointSecret = config.stripe.WEBHOOK_ENDPOINT_SECRET
  * @returns JSON
  */
 export const postWebhook = async (req: any, res: Response, next: NextFunction) => {
+    console.log("======== WEBHOOK CALLED ========")
+    console.log("Headers:", JSON.stringify(req.headers))
+
     try {
         console.log("INSIDE postWebhook")
 
-        if (!stripe && !endpointSecret) {
+        if (!stripe || !endpointSecret) {
+            console.error("Missing stripe or endpointSecret:", { stripe: !!stripe, endpointSecret: !!endpointSecret })
             throw new Error("Stripe endpoint secret not found")
         }
+
         let event: any
         let paymentIntent: any = null
-        try {
 
+        try {
             const sig = req.headers["stripe-signature"] as string
+            console.log("Stripe signature:", sig ? "Present" : "Missing")
+
+            if (!sig) {
+                return res.status(400).send(`Webhook Error: Missing stripe-signature header`)
+            }
+
+            if (!req.body || typeof req.body === 'object' && Object.keys(req.body).length === 0) {
+                console.error("Empty webhook body")
+                return res.status(400).send(`Webhook Error: Empty request body`)
+            }
+
+            console.log("Raw body type:", typeof req.body)
+            console.log("Raw body length:", typeof req.body === 'string' ? req.body.length : 'not a string')
+
             event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret)
-            console.log('event.type', event.type.toLowerCase())
+            console.log('event.type', event.type)
         }
         catch (err: any) {
+            console.error("Webhook Error:", err.message)
             return res.status(400).send(`Webhook Error: ${err.message}`)
         }
+
         // Handle the event
         switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object
+                console.log('Checkout session completed!', JSON.stringify(session))
+
+                // Only mark as paid if payment was successful
+                if (session.payment_status === 'paid') {
+                    const userId = session.metadata?.userId
+                    console.log(`Checkout session completed with payment_status=paid, userId=${userId}`)
+
+                    if (userId) {
+                        if (session.mode === 'payment') {
+                            console.log(`Processing one-time payment for userId=${userId}`)
+                            // Handle one-time payment
+                            await createUserFinancialRecordOnetime(session)
+                        } else if (session.mode === 'subscription') {
+                            console.log(`Processing subscription payment for userId=${userId}`)
+                            // Handle subscription payment
+                            await createUserFinancialRecordRecurring(session)
+                        }
+                    } else {
+                        console.log('Warning: No userId found in checkout session metadata', session)
+                    }
+                } else {
+                    console.log(`Checkout session not paid. Status: ${session.payment_status}`)
+                }
+                break
+            }
             case 'payment_intent.succeeded': {
                 paymentIntent = event.data.object
                 console.log('PaymentIntent was successful!', JSON.stringify(paymentIntent))
@@ -88,10 +137,22 @@ export const postWebhook = async (req: any, res: Response, next: NextFunction) =
 }
 
 const createUserFinancialRecordOnetime = async (paymentIntent: any) => {
-    // get user
-    let user: any = await UserService.findUser({ _id: paymentIntent?.metadata?.userId })
+    // get user and extract userId
+    const userId = paymentIntent?.metadata?.userId
+
+    if (!userId) {
+        console.log("Error: No userId found in webhook payload", paymentIntent)
+        return
+    }
+
+    // Find the user
+    let user: any = await UserService.findUser({ _id: userId })
+    if (!user) {
+        console.log("Error: User not found with ID:", userId)
+        return
+    }
     user = user?.toObject()
-    let userId: any = user._id ? user._id : undefined
+
     let currency: any = paymentIntent?.currency ? paymentIntent?.currency : undefined
     let stripeCustomer: any = paymentIntent?.customer ? paymentIntent?.customer : undefined
     let planId: any = paymentIntent?.metadata?.product ? paymentIntent?.metadata?.product : undefined
@@ -99,6 +160,7 @@ const createUserFinancialRecordOnetime = async (paymentIntent: any) => {
     let paymentType: any = paymentIntent?.metadata?.action ? paymentIntent?.metadata?.action : undefined
     let status: any = "succeeded"
     let body: any = null
+
     if (paymentType === "ONE_TIME_PAYMENT") {
         body = {
             'userId': userId,
@@ -111,16 +173,50 @@ const createUserFinancialRecordOnetime = async (paymentIntent: any) => {
             'paymentType': "one-time"
         }
     }
-    addJobSendMailQuestionLinkCreation({ userId: userId, email: user?.email, userName: `${user?.firstName}  ${user?.lastName}` }, userId)
+
+    console.log(`Updating user ${userId} with isPaid=true`)
+
+    // Update user first, then create financial record
     const _updateUserRes: any = await UserService.updateUser(userId, { isPaid: true, exerciseStartDate: new Date() })
-    const _createFinancialRecordRes: any = await StripeService.createFinancialRecord(body)
+
+    if (_updateUserRes) {
+        console.log(`User ${userId} successfully updated with isPaid=true`)
+        // Send email notification
+        addJobSendMailQuestionLinkCreation({ userId: userId, email: user?.email, userName: `${user?.firstName}  ${user?.lastName}` }, userId)
+        // Create financial record
+        const _createFinancialRecordRes: any = await StripeService.createFinancialRecord(body)
+    } else {
+        console.log(`Failed to update user ${userId}`)
+    }
 }
 
 const createUserFinancialRecordRecurring = async (paymentIntent: any) => {
+    // First, try to get userId from metadata for checkout session objects
+    let userId = paymentIntent?.metadata?.userId
+    let user: any
+
+    // If we don't have userId in metadata, try to find user by stripeCustomerId
+    if (!userId) {
+        user = await UserService.findUser({ stripeCustomerId: paymentIntent?.customer })
+        if (!user) {
+            console.log("Error: User not found with stripeCustomerId:", paymentIntent?.customer)
+            return
+        }
+        user = user?.toObject()
+        userId = user._id
+    } else {
+        // Get user by userId
+        user = await UserService.findUser({ _id: userId })
+        if (!user) {
+            console.log("Error: User not found with ID:", userId)
+            return
+        }
+        user = user?.toObject()
+    }
+
+    console.log(`Processing subscription payment for user ${userId}`)
+
     let body: any = null
-    let user: any = await UserService.findUser({ stripeCustomerId: paymentIntent?.customer })
-    user = user?.toObject()
-    let userId: any = user._id ? user._id : undefined
 
     if (paymentIntent.invoice) {
         //get payment invoice
@@ -131,7 +227,7 @@ const createUserFinancialRecordRecurring = async (paymentIntent: any) => {
         let data: any = Array.isArray(invoice.lines.data) ? invoice.lines.data : []
 
         body = {
-            userId: user._id,
+            userId: userId,
             currency: data[0]?.plan?.currency,
             stripeCustomer: invoice.customer,
             planId: data[0]?.plan?.id,
@@ -140,41 +236,35 @@ const createUserFinancialRecordRecurring = async (paymentIntent: any) => {
             subscriptionId: data[0]?.subscription,
             paymentType: data[0]?.type === "subscription" ? "recurring" : "one-time"
         }
+    } else {
+        // For checkout session objects that don't have invoice
+        body = {
+            userId: userId,
+            currency: paymentIntent?.currency,
+            stripeCustomer: paymentIntent?.customer,
+            planId: paymentIntent?.metadata?.product,
+            amount: paymentIntent?.amount_total,
+            status: "succeeded",
+            subscriptionId: paymentIntent?.subscription,
+            paymentType: "recurring"
+        }
     }
-    addJobSendMailQuestionLinkCreation({ userId: userId, email: user?.email, userName: `${user?.firstName}  ${user?.lastName}` }, userId)
+
+    console.log(`Updating user ${userId} with isPaid=true`)
+
+    // Update user first, then create financial record
     const _updateUserRes: any = await UserService.updateUser(userId, { isPaid: true, exerciseStartDate: new Date() })
-    const _createFinancialRecordRes: any = await StripeService.createFinancialRecord(body)
+
+    if (_updateUserRes) {
+        console.log(`User ${userId} successfully updated with isPaid=true`)
+        // Send email notification
+        addJobSendMailQuestionLinkCreation({ userId: userId, email: user?.email, userName: `${user?.firstName}  ${user?.lastName}` }, userId)
+        // Create financial record
+        const _createFinancialRecordRes: any = await StripeService.createFinancialRecord(body)
+    } else {
+        console.log(`Failed to update user ${userId}`)
+    }
 }
-
-// /**
-// * Create new subscription record on stripe for customer passed in setupIntent
-// * @param paymentIntent
-// * @returns Boolean
-// */
-// const attachSubscriptionToCustomer = async (stripeCustomerId: string, paymentIntent: { [key: string]: any }) => {
-//     try {
-//         let { userId, product, price } = paymentIntent['metadata']
-//         const subscriptionsCreateResponse: any = await stripe.subscriptions.create({
-//             'customer': stripeCustomerId,
-//             'items': [
-//                 {
-//                     'price': price,
-//                 }
-//             ],
-//             'metadata': {
-//                 userId,
-//                 'action': 'SUBSCRIPTION_MADE',
-//                 product,
-//                 gateway: 'STRIPE',
-//             },
-//             'collection_method': 'charge_automatically'
-//         })
-
-//         return subscriptionsCreateResponse
-//     } catch (error: any) {
-//         return false
-//     }
-// }
 
 /**
  * Create new subscription record on stripe for customer passed in setupIntent

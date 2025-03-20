@@ -12,6 +12,8 @@ router.post("/unsubscribe", requireUserToLogin, StripeContorller.unsubscribeUser
 router.post("/charge", requireUserToLogin, StripeContorller.chargeCard as any)
 //router.post("/webhook", express.raw({ type: "*/*" }), StripeContorller.stripeWebhook as any)
 router.post("/checkout", requireUserToLogin, StripeContorller.checkout as any)
+router.post("/manual-update-paid", requireUserToLogin, StripeContorller.manualUpdatePaidStatus as any)
+router.post("/confirm-payment", StripeContorller.confirmPaymentSuccess as any)
 
 // New coupon routes
 router.post("/validate-coupon", requireUserToLogin, StripeContorller.validateCoupon as any)

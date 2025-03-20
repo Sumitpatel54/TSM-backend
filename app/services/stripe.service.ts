@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-imports */
 // import { DocumentDefinition } from "mongoose"
 
 // import { UserFinancialDocument } from "../interfaces/userFinancial.interface"
@@ -15,9 +16,8 @@ const createFinancialRecord = async (payload: any) => {
     try {
         const userFinancialCreateResponse = await UserFinancial.create(payload)
         if (userFinancialCreateResponse) {
-            // mark user document as paid
+            // Send email notification
             addJobSendMailQuestionLinkCreation({ userId: payload.userId, email: payload?.email, userName: `${payload?.firstName}  ${payload?.lastName}` }, payload.userId)
-            await User.findByIdAndUpdate(payload.userId, { isPaid: true, exerciseStartDate: new Date() }, { new: true })
             return userFinancialCreateResponse
         }
         throw new Error(`Sorry some errors occurred while creating Exercise`)
