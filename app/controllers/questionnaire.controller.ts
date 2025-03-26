@@ -330,6 +330,7 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
           data: retrieveQuestionnaireResponse,
           totalQuestions: totalQuestionnaireCount,
           message: "Questionnaire Record Fetched",
+          isQuestionnaireDone: false
         });
       }
       return res.status(statusCode).send({
@@ -366,6 +367,7 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
             data: nextQuestionData,
             totalQuestions: totalQuestionnaireCount,
             message: "Next question fetched",
+            isQuestionnaireDone: false
           });
         } else {
           return res.status(200).send({
@@ -373,6 +375,7 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
             data: null,
             totalQuestions: totalQuestionnaireCount,
             message: "No more questions",
+            isQuestionnaireDone: true
           });
         }
       } else {
@@ -381,6 +384,7 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
           data: null,
           totalQuestions: totalQuestionnaireCount,
           message: "No more questions",
+          isQuestionnaireDone: true
         });
       }
     }
@@ -541,6 +545,7 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     return res.status(200).send({
       status: true,
       message: "Success",
+      isQuestionnaireDone: true
     })
   } catch (error: any) {
     return res.status(statusCode).send({
@@ -699,6 +704,7 @@ const apiProgressProvideAnswers = async (
     return res.status(200).send({
       status: true,
       message: "Success",
+      isQuestionnaireDone: true
     })
   } catch (error: any) {
     return res.status(statusCode).send({
