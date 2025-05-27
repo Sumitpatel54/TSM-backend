@@ -26,4 +26,7 @@ router.post("/answer", requireUserToLogin, QuestionnaireContorller.apiProgressPr
 router.get("/onboardingProgress", requireUserToLogin, QuestionnaireContorller.apiGetOnboardingProgress as any)
 router.post("/onboardingProgress", requireUserToLogin, QuestionnaireContorller.apiUpdateOnboardingProgress as any)
 
+// Route to check questionnaire completion status
+router.get("/status", requireUserToLogin, QuestionnaireContorller.apiCheckQuestionnaireStatus as any)
+
 export = router

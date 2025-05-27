@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema(
     age: {
       type: Number
     },
+    isQuestionnaireDone: {
+      type: Boolean,
+      default: false
+    },
     bmiData: {
       type: Object
     },

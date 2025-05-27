@@ -321,6 +321,24 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
     // Get the user's questionnaire answers
     const questionnaireAnswers: any = user.questionnaireAnswers;
 
+    // Check if the questionnaire is already completed from previous sessions
+    // This is determined by checking if the user has answers and if there are no more questions
+    const isQuestionnaireDone = (user as any).isQuestionnaireDone ||
+      (questionnaireAnswers &&
+        Object.keys(questionnaireAnswers).length > 0 &&
+        Object.keys(questionnaireAnswers).length >= totalQuestionnaireCount);
+
+    // If questionnaire is already done, return this info immediately
+    if (isQuestionnaireDone) {
+      return res.status(200).send({
+        status: true,
+        data: null,
+        totalQuestions: totalQuestionnaireCount,
+        message: "Questionnaire already completed",
+        isQuestionnaireDone: true
+      });
+    }
+
     if (!questionnaireAnswers || Object.keys(questionnaireAnswers).length === 0) {
       // If no answers, fetch the first question
       const retrieveQuestionnaireResponse = await QuestionnaireService.listAllQuestionnairesSortedByCreatedAt({});
@@ -370,6 +388,8 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
             isQuestionnaireDone: false
           });
         } else {
+          // No more questions found, mark questionnaire as done
+          await UserService.updateUser(userId, { $set: { isQuestionnaireDone: true } });
           return res.status(200).send({
             status: true,
             data: null,
@@ -379,6 +399,8 @@ const apiGetFirstQuestion = async (req: Request, res: Response) => {
           });
         }
       } else {
+        // No next question defined, mark questionnaire as done
+        await UserService.updateUser(userId, { $set: { isQuestionnaireDone: true } });
         return res.status(200).send({
           status: true,
           data: null,
@@ -542,6 +564,9 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
       })
     }
 
+    // No more questions, mark the questionnaire as done
+    await UserService.updateUser(userId, { $set: { isQuestionnaireDone: true } });
+
     return res.status(200).send({
       status: true,
       message: "Success",
@@ -700,6 +725,13 @@ const apiProgressProvideAnswers = async (
         message: "Something went wrong.",
       })
     }
+
+    // No more questions, mark the follow-up questionnaire as done
+    const updateField = days === 30 ? 'isQuestionnaire30DaysDone' :
+      days === 60 ? 'isQuestionnaire60DaysDone' :
+        'isQuestionnaire90DaysDone';
+
+    await UserService.updateUser(userId, { $set: { [updateField]: true } });
 
     return res.status(200).send({
       status: true,
@@ -877,6 +909,53 @@ const apiUpdateOnboardingProgress = async (req: Request, res: Response) => {
   }
 };
 
+const apiCheckQuestionnaireStatus = async (req: Request, res: Response) => {
+  try {
+    const userId: any = req.user?.id;
+
+    if (!userId) {
+      return res.status(HttpStatusCode.UNAUTHORIZED).send({
+        status: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    const user = await UserService.findUser({ _id: new mongoose.Types.ObjectId(userId) });
+
+    if (!user) {
+      return res.status(HttpStatusCode.NOT_FOUND).send({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if questionnaire is completed
+    const totalQuestionnaireCount = await Questionnaire.countDocuments();
+    const questionnaireAnswers = user.questionnaireAnswers || {};
+    const answeredQuestionsCount = Object.keys(questionnaireAnswers).length;
+
+    // Consider questionnaire done if explicitly marked as done or if all questions are answered
+    // Use optional chaining to safely access the property that might not be in the type definition
+    const isQuestionnaireDone = (user as any).isQuestionnaireDone ||
+      (answeredQuestionsCount > 0 && answeredQuestionsCount >= totalQuestionnaireCount);
+
+    return res.status(HttpStatusCode.OK).send({
+      status: true,
+      data: {
+        isQuestionnaireDone: isQuestionnaireDone,
+        answeredQuestions: answeredQuestionsCount,
+        totalQuestions: totalQuestionnaireCount,
+      },
+      message: "Questionnaire status retrieved successfully",
+    });
+  } catch (error: any) {
+    return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).send({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
 export default {
   apiCreateQuestionnaire,
   apiRetrieveQuestionnaire,
@@ -892,4 +971,5 @@ export default {
   apiGenerateTemplate,
   apiGetOnboardingProgress,
   apiUpdateOnboardingProgress,
+  apiCheckQuestionnaireStatus,
 }
