@@ -74,7 +74,8 @@ const userSchema = new mongoose.Schema(
     },
     isPaid: {
       type: Boolean,
-      required: false
+      required: false,
+      default: false
     },
     exerciseStartDate: {
       type: Date
