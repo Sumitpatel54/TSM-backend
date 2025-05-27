@@ -613,6 +613,7 @@ passport.use(new GoogleStrategy.Strategy({
     // Login successful, write token, and send back user
     let token = user.generateJWT()
 
+    // const frontendURL = 'http://localhost:3000'
     const frontendURL = 'https://client.curemigraine.org'
     return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` })
   } catch (error) {
@@ -676,7 +677,8 @@ const googleCallback = async (req: Request, res: Response) => {
           email: data.user.email,
           firstName: data.user.firstName,
           lastName: data.user.lastName,
-          role: data.user.role
+          role: data.user.role,
+          isPaid: data.user.isPaid
         },
         token: data.token
       },
@@ -688,7 +690,13 @@ const googleCallback = async (req: Request, res: Response) => {
     console.log('Saved temp token to database:', tempToken);
 
     // Redirect to frontend
+    // const frontendURL = 'http://localhost:3000';
     const frontendURL = 'https://client.curemigraine.org';
+
+    // Check if user is paid and redirect accordingly
+    const isPaid = data.user.isPaid === true;
+
+    // Always redirect to home with the token, the frontend will handle the redirection based on payment status
     const redirectURL = `${frontendURL}/home?googleToken=${tempToken}`;
     console.log('Redirecting to:', redirectURL);
     return res.redirect(redirectURL);
