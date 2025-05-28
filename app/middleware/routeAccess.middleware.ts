@@ -27,21 +27,43 @@ const routeAccess = function (requiredRoles: any) {
 }
 
 const requireUserToLogin = (req: any, res: any, next: any) => {
-    // const token = req.header('auth-token')
-    const header = req.headers["authorization"]
-    const bearer = header.split(" ")
-    const token = bearer[1]
-    if (!token) return res.status(401).json({ msg: 'Login again' })
     try {
-        const payload: any = jwt.verify(token, process.env.JWT_SECRET || "")
-        if (payload.role !== "patient") {
-            throw new Error("")
+        // Check for token in various places
+        let token;
+
+        // Check authorization header
+        const header = req.headers["authorization"];
+        if (header) {
+            const parts = header.split(" ");
+            if (parts.length === 2 && parts[0] === "Bearer") {
+                token = parts[1];
+            }
         }
-        req.user = payload
-        next()
+
+        // If no token in header, check auth-token header
+        if (!token) {
+            token = req.header('auth-token');
+        }
+
+        // If still no token, check cookies
+        if (!token && req.cookies && req.cookies.token) {
+            token = req.cookies.token;
+        }
+
+        if (!token) {
+            return res.status(401).json({ status: false, message: 'Authentication token missing' });
+        }
+
+        const payload: any = jwt.verify(token, process.env.JWT_SECRET || "");
+        if (payload.role !== "patient") {
+            return res.status(403).json({ status: false, message: 'Unauthorized role' });
+        }
+
+        req.user = payload;
+        next();
     } catch (error) {
-        return res.status(401).json({ status: false })
-        // return res.status(401).json({ status: false, message: "Invalid Token!" })
+        console.error("Auth error:", error);
+        return res.status(401).json({ status: false, message: "Invalid or expired token" });
     }
 }
 

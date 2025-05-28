@@ -625,8 +625,8 @@ passport.use(new GoogleStrategy.Strategy({
     // Login successful, write token, and send back user
     let token = user.generateJWT()
 
-    const frontendURL = 'http://localhost:3000'
-    // const frontendURL = 'https://client.curemigraine.org'
+    // const frontendURL = 'http://localhost:3000'
+    const frontendURL = 'https://client.curemigraine.org'
     return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` })
   } catch (error) {
     console.error('Error in Google authentication strategy:', error);
@@ -707,8 +707,8 @@ const googleCallback = async (req: Request, res: Response) => {
     console.log('Saved temp token to database:', tempToken);
 
     // Redirect to frontend
-    const frontendURL = 'http://localhost:3000';
-    // const frontendURL = 'https://client.curemigraine.org';
+    // const frontendURL = 'http://localhost:3000';
+    const frontendURL = 'https://client.curemigraine.org';
 
     // Check if user is paid and redirect accordingly
     const isPaid = data.user.isPaid === true;
