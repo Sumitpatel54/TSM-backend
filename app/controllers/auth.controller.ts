@@ -569,6 +569,7 @@ passport.use(new GoogleStrategy.Strategy({
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
 }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
   try {
+    console.log('Google auth profile:', profile);
     const { id: googleId, _json } = profile
 
     // First try to find user by Google ID
@@ -576,7 +577,9 @@ passport.use(new GoogleStrategy.Strategy({
 
     if (!user) {
       // If not found by Google ID, try to find by email
-      user = await User.findOne({ email: _json.email })
+      if (_json && _json.email) {
+        user = await User.findOne({ email: _json.email })
+      }
 
       if (user) {
         // If user exists with email but no Google ID, update their Google credentials
@@ -587,13 +590,20 @@ passport.use(new GoogleStrategy.Strategy({
         }
         user.isVerified = true
         await user.save()
+        console.log('Updated existing user with Google credentials');
       } else {
         // Create a new user if neither Google ID nor email exists
+        if (!_json || !_json.email) {
+          console.error('No email found in Google profile');
+          return done(new Error('No email found in Google profile'), false);
+        }
+
+        console.log('Creating new user from Google profile');
         user = new User({
           method: 'google',
           email: _json.email,
-          firstName: _json.given_name,
-          lastName: _json.family_name,
+          firstName: _json.given_name || 'Google',
+          lastName: _json.family_name || 'User',
           google: {
             id: googleId,
             token: accessToken
@@ -603,20 +613,23 @@ passport.use(new GoogleStrategy.Strategy({
           role: 'patient'
         })
         await user.save()
+        console.log('New user created with ID:', user._id);
       }
     } else {
       // Update the access token for existing Google user
       (user.google as GoogleUser).token = accessToken
       await user.save()
+      console.log('Updated token for existing Google user');
     }
 
     // Login successful, write token, and send back user
     let token = user.generateJWT()
 
-    // const frontendURL = 'http://localhost:3000'
-    const frontendURL = 'https://client.curemigraine.org'
+    const frontendURL = 'http://localhost:3000'
+    // const frontendURL = 'https://client.curemigraine.org'
     return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` })
   } catch (error) {
+    console.error('Error in Google authentication strategy:', error);
     return done(error, false)
   }
 }))
@@ -654,16 +667,20 @@ const googleCallback = async (req: Request, res: Response) => {
 
     if (!req.user) {
       console.log('No user data in request');
-      return res.redirect('https://client.curemigraine.org/home?error=no_user_data');
+      return res.redirect('https://client.curemigraine.org/login?error=no_user_data');
     }
 
     const data = req.user as any;
-    console.log('Google callback data:', JSON.stringify(data));
+    console.log('Google callback data structure:', Object.keys(data));
 
     if (!data.user || !data.token) {
       console.log('Invalid Google callback data structure');
-      return res.redirect('https://client.curemigraine.org/home?error=invalid_data');
+      return res.redirect('https://client.curemigraine.org/login?error=invalid_data');
     }
+
+    console.log('User ID:', data.user._id);
+    console.log('User email:', data.user.email);
+    console.log('User role:', data.user.role);
 
     // Generate a temporary token
     const tempToken = uuidv4();
@@ -690,8 +707,8 @@ const googleCallback = async (req: Request, res: Response) => {
     console.log('Saved temp token to database:', tempToken);
 
     // Redirect to frontend
-    // const frontendURL = 'http://localhost:3000';
-    const frontendURL = 'https://client.curemigraine.org';
+    const frontendURL = 'http://localhost:3000';
+    // const frontendURL = 'https://client.curemigraine.org';
 
     // Check if user is paid and redirect accordingly
     const isPaid = data.user.isPaid === true;
@@ -703,7 +720,7 @@ const googleCallback = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error in googleCallback:', error);
-    return res.redirect('https://client.curemigraine.org/home?error=server_error');
+    return res.redirect('https://client.curemigraine.org/login?error=server_error');
   }
 };
 
@@ -713,12 +730,14 @@ const getGoogleUserData = async (req: Request, res: Response) => {
     const { googleToken } = req.query;
 
     if (!googleToken || typeof googleToken !== 'string') {
-      console.log('Invalid googleToken');
+      console.log('Invalid googleToken:', googleToken);
       return res.status(400).json({
         status: false,
         message: 'Invalid token provided'
       });
     }
+
+    console.log('Looking for token:', googleToken);
 
     // Find the temporary token
     const tempTokenDoc = await TempToken.findOne({ token: googleToken });
@@ -731,9 +750,11 @@ const getGoogleUserData = async (req: Request, res: Response) => {
       });
     }
 
-    // Delete the token immediately after finding it
-    // await TempToken.deleteOne({ token: googleToken });
-    // console.log('Successfully deleted temp token');
+    console.log('Token found, user ID:', tempTokenDoc.userData.user._id);
+
+    // Delete the token immediately after finding it to prevent reuse
+    await TempToken.deleteOne({ token: googleToken });
+    console.log('Successfully deleted temp token');
 
     // Return the user data
     return res.status(200).json({
@@ -750,5 +771,74 @@ const getGoogleUserData = async (req: Request, res: Response) => {
   }
 };
 
-export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail, googleCallback, getGoogleUserData }
+const googleSignIn = async (req: Request, res: Response) => {
+  try {
+    console.log('Entering googleSignIn function');
+    const { token, userInfo } = req.body;
+
+    if (!token || !userInfo || !userInfo.email) {
+      console.log('Invalid Google sign-in data');
+      return res.status(400).json({
+        status: false,
+        message: 'Invalid Google sign-in data'
+      });
+    }
+
+    console.log('Processing Google sign-in for:', userInfo.email);
+
+    // First try to find user by email
+    let user: any = await User.findOne({ email: userInfo.email });
+
+    if (!user) {
+      // Create a new user if email doesn't exist
+      console.log('Creating new user from Google profile');
+      user = new User({
+        method: 'google',
+        email: userInfo.email,
+        firstName: userInfo.given_name || userInfo.name || 'Google',
+        lastName: userInfo.family_name || 'User',
+        google: {
+          id: userInfo.sub,
+          token: token
+        },
+        isVerified: true,
+        isActive: true,
+        role: 'patient'
+      });
+      await user.save();
+      console.log('New user created with ID:', user._id);
+    } else {
+      // Update existing user with Google info
+      user.method = user.method || 'google';
+      user.google = {
+        id: userInfo.sub,
+        token: token
+      };
+      user.isVerified = true;
+      await user.save();
+      console.log('Updated existing user with Google credentials');
+    }
+
+    // Login successful, generate JWT token
+    let authToken = user.generateJWT();
+
+    // Return user data and token
+    return res.status(200).json({
+      status: true,
+      data: {
+        user,
+        token: authToken
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in googleSignIn:', error);
+    return res.status(500).json({
+      status: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail, googleCallback, getGoogleUserData, googleSignIn }
 
