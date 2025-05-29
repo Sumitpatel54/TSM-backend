@@ -4,9 +4,13 @@ import express from "express"
 import UserController from "../controllers/user.controller"
 // import { verifyToken } from "../middleware/auth.middleware"
 import { requireUserToLogin } from "../middleware/routeAccess.middleware"
+import { verifyToken } from "../middleware/auth.middleware"
 
 const router = express.Router()
 // const onlyAdminPermission = config.routePermission.onlyAdmin
+
+// Get current user data
+router.get("/me", verifyToken as any, UserController.apiGetCurrentUser as any)
 
 router.get("/:id", UserController.apiGetUser)
 router.put("/:id", requireUserToLogin, UserController.apiUpdateUser)

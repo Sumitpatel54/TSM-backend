@@ -242,6 +242,55 @@ const storeDailyNutrition = async (req: Request, res: Response) => {
     }
 }
 
+/**
+ * @summary - Get current logged in user data
+ * @param req
+ * @param res
+ * @returns
+ */
+const apiGetCurrentUser = async (req: Request, res: Response) => {
+    try {
+        // Get user ID from the authenticated request
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return res.status(401).send({
+                status: false,
+                message: "Unauthorized access. User not authenticated.",
+            });
+        }
+
+        // Get user data
+        const user = await UserService.findUser({ _id: userId });
+
+        if (!user) {
+            return res.status(404).send({
+                status: false,
+                message: "User not found.",
+            });
+        }
+
+        // Update user BMI data if available
+        try {
+            await updateUserBMIData(user);
+        } catch (error: any) {
+            console.warn("Failed to update user BMI data:", error.message);
+            // Continue without BMI data
+        }
+
+        return res.status(200).send({
+            status: true,
+            data: user,
+            message: "Successfully retrieved current user data.",
+        });
+    } catch (error: any) {
+        return res.status(500).send({
+            status: false,
+            message: error.message,
+        });
+    }
+};
+
 export default {
     apiGetUser,
     apiUpdateUser,
@@ -249,5 +298,6 @@ export default {
     fetchDailyNutrition,
     storeDailyExercises,
     storeDailyNutrition,
-    updateUserBMIData
+    updateUserBMIData,
+    apiGetCurrentUser
 }
