@@ -435,8 +435,6 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
   try {
     const questionnaireId: any = req.params.questionId
     const userId: any = req.user?.id
-
-
     const answer: any = req.body.answer?.trim()
     const file: any = req.files?.image
 
@@ -445,138 +443,174 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
       throw new Error("Kindly provide an answer.")
     }
 
-    if (file) {
-      image = await commonUtilitie.getUploadURL(file)
+    // Start multiple operations in parallel where possible
+    const fileUploadPromise = file ? commonUtilitie.getUploadURL(file) : Promise.resolve("");
+
+    // Get questionnaire
+    const retrieveQuestionnairePromise = QuestionnaireService.retrieveQuestionnaire({
+      _id: new mongoose.Types.ObjectId(questionnaireId),
+    });
+
+    // Wait for both operations to complete
+    const [uploadedImage, retrieveQuestionnaireResponse] = await Promise.all([
+      fileUploadPromise,
+      retrieveQuestionnairePromise
+    ]);
+
+    image = uploadedImage;
+
+    if (!retrieveQuestionnaireResponse) {
+      throw new Error("Questionnaire not found");
     }
 
-    // get questionnaire
-    let retrieveQuestionnaireResponse: any =
-      await QuestionnaireService.retrieveQuestionnaire({
-        _id: new mongoose.Types.ObjectId(questionnaireId),
-      })
-    if (retrieveQuestionnaireResponse)
-      retrieveQuestionnaireResponse = retrieveQuestionnaireResponse.toObject()
+    const questionnaireData = retrieveQuestionnaireResponse.toObject();
 
-    // cache the question number for the questionnaire
-    questionNo = Number(retrieveQuestionnaireResponse.questionNumber)
-    // cache query block
-    const queryBlock = retrieveQuestionnaireResponse.queryBlock
+    // Cache the question number for the questionnaire
+    questionNo = Number(questionnaireData.questionNumber);
+    // Cache query block
+    const queryBlock = questionnaireData.queryBlock;
 
-    // get the next question
+    // Prepare the answer object early to avoid redundant operations
+    answerObj = {
+      questionnaire: questionnaireData,
+      answer: answer || "",
+      image: image || ""
+    };
+
+    // Find the matching query block option
+    let nextQuestionId = null;
     if (Array.isArray(queryBlock) && queryBlock.length > 0) {
+      const lowerCaseAnswer = answer.toLowerCase();
       obj = queryBlock.find(
-        (v: any) => v.selectedOption?.toLowerCase() === answer.toLowerCase()
-      )
-
-      // if (answer.toLowerCase() === "no") obj = queryBlock.find((v: any) => v.selectedOption?.toLowerCase() === answer.toLowerCase())
-      // else obj = queryBlock.find((v: any) => ((v.selectedOption?.toLowerCase() === "yes") || v.selectedOption))
+        (v: any) => v.selectedOption?.toLowerCase() === lowerCaseAnswer
+      );
 
       if (!obj)
-        throw new Error(`'queryBlock' does not have the answer: ${answer}`)
+        throw new Error(`'queryBlock' does not have the answer: ${answer}`);
 
-      // if a report block is provided save the report in the user's document
+      // Store next question ID for later use
+      nextQuestionId = obj.nextQuestion;
+
+      // Update operations to run in parallel
+      const updateOperations = [];
+
+      // If a report block is provided, prepare update operation
       if (obj.reportBlock) {
         const reportBlock = {
-          title: retrieveQuestionnaireResponse.sectionName,
+          title: questionnaireData.sectionName,
           text: obj.reportBlock,
-          image: retrieveQuestionnaireResponse.imageUrl,
-        }
+          image: questionnaireData.imageUrl,
+        };
 
-        await UserService.updateUser(userId, {
-          $set: { [`reportBlock.${questionnaireId}`]: reportBlock },
-        })
+        updateOperations.push(
+          UserService.updateUser(userId, {
+            $set: {
+              [`reportBlock.${questionnaireId}`]: reportBlock,
+              [`questionnaireAnswers.${questionnaireId}`]: answerObj
+            }
+          })
+        );
+      } else {
+        // Just update the answer
+        updateOperations.push(
+          UserService.updateUser(userId, {
+            $set: { [`questionnaireAnswers.${questionnaireId}`]: answerObj }
+          })
+        );
       }
+
+      // Execute all updates in parallel
+      await Promise.all(updateOperations);
+    } else {
+      // Add provided answer to user
+      await UserService.updateUser(userId, {
+        $set: { [`questionnaireAnswers.${questionnaireId}`]: answerObj }
+      });
     }
 
-    // format answer object
-    answerObj["questionnaire"] = retrieveQuestionnaireResponse
-    answerObj["answer"] = answer || ""
-    answerObj["image"] = image || ""
+    // Prepare next question response before starting heavy background tasks
+    let nextQuestionResponse: any = null;
 
-    // console.log("retrieveQuestionnaireResponse ==", retrieveQuestionnaireResponse);
+    // If we have a direct next question from the query block
+    if (nextQuestionId) {
+      const retrieveNextQuestionnaireResponse = await QuestionnaireService.retrieveQuestionnaire({
+        _id: new mongoose.Types.ObjectId(nextQuestionId),
+      });
 
-    // add provided answer to user
-    await UserService.updateUser(userId, {
-      $set: { [`questionnaireAnswers.${questionnaireId}`]: answerObj },
-    })
-
-    try {
-      const user: any = await UserService.findUser({ _id: userId })
-      await userController.updateUserBMIData(user);
-    } catch (error: any) {
-      console.warn("Failed to update user BMI data:", error.message);
-    }
-
-    // create program for user
-    try {
-      await QuestionnaireService.generateProgramForUser(userId)
-      // await QuestionnaireService.generatePosturalProgramForUser(userId)
-    } catch (e: any) {
-      console.log(e)
-    }
-
-    try {
-      await QuestionnaireService.programGeneration(userId)
-
-    } catch (e: any) {
-      console.log("error =======", e)
-    }
-
-    if (obj && obj.nextQuestion) {
-      // get next questionnaire
-      const retrieveNextQuestionnaireResponse: any =
-        await QuestionnaireService.retrieveQuestionnaire({
-          _id: new mongoose.Types.ObjectId(obj.nextQuestion),
-        })
-
-      return res.status(200).send({
-        status: true,
-        data: {
-          nextQuestion: retrieveNextQuestionnaireResponse,
-        },
-        message: "Questionnaire Record Fetched",
-      })
-    }
-
-    try {
-      // get next question by question number
-      const retrieveNextQuestionnaireResponse: any =
-        await QuestionnaireService.retrieveNextQuestionnaire({
-          questionNumber: { $gt: questionNo },
-        })
-
-      if (
-        Array.isArray(retrieveNextQuestionnaireResponse) &&
-        retrieveNextQuestionnaireResponse.length > 0
-      ) {
-        return res.status(200).send({
+      if (retrieveNextQuestionnaireResponse) {
+        nextQuestionResponse = {
           status: true,
           data: {
-            nextQuestion: retrieveNextQuestionnaireResponse[0],
+            nextQuestion: retrieveNextQuestionnaireResponse,
           },
           message: "Questionnaire Record Fetched",
-        })
+        };
       }
-    } catch (e: any) {
-      return res.status(500).send({
-        status: false,
-        message: "Something went wrong.",
-      })
     }
 
-    // No more questions, mark the questionnaire as done
-    await UserService.updateUser(userId, { $set: { isQuestionnaireDone: true } });
+    // If no direct next question, try to find by question number
+    if (!nextQuestionResponse) {
+      try {
+        const retrieveNextQuestionnaireResponse = await QuestionnaireService.retrieveNextQuestionnaire({
+          questionNumber: { $gt: questionNo },
+        });
 
+        if (Array.isArray(retrieveNextQuestionnaireResponse) && retrieveNextQuestionnaireResponse.length > 0) {
+          nextQuestionResponse = {
+            status: true,
+            data: {
+              nextQuestion: retrieveNextQuestionnaireResponse[0],
+            },
+            message: "Questionnaire Record Fetched",
+          };
+        }
+      } catch (e: any) {
+        // If we can't find next question, we'll mark as done below
+      }
+    }
+
+    // Start heavy background tasks without waiting for them
+    // These operations will continue running after the response is sent
+    setTimeout(async () => {
+      try {
+        // Run these operations in the background without blocking the response
+        const user = await UserService.findUser({ _id: userId });
+        if (user) {
+          userController.updateUserBMIData(user).catch(error => {
+            console.warn("Failed to update user BMI data:", error.message);
+          });
+        }
+
+        // Run program generation - only call programGeneration since it already calls generateProgramForUser internally
+        QuestionnaireService.programGeneration(userId).catch(e => {
+          console.log("Error in program generation:", e);
+        });
+
+        // If no more questions found, mark questionnaire as done
+        if (!nextQuestionResponse) {
+          await UserService.updateUser(userId, { $set: { isQuestionnaireDone: true } });
+        }
+      } catch (error) {
+        console.error("Error in background tasks:", error);
+      }
+    }, 0);
+
+    // Return next question if found
+    if (nextQuestionResponse) {
+      return res.status(200).send(nextQuestionResponse);
+    }
+
+    // No more questions
     return res.status(200).send({
       status: true,
       message: "Success",
       isQuestionnaireDone: true
-    })
+    });
   } catch (error: any) {
     return res.status(statusCode).send({
       status: false,
       message: error.message,
-    })
+    });
   }
 }
 
