@@ -388,13 +388,33 @@ const register = async (req: Request, res: Response) => {
     // send email verification
     await sendEmailVerification(user_, req)
 
+    // Generate token for immediate use
+    const token = (user_ as any).generateJWT()
+
+    // Set user as verified to allow immediate access (optional - remove if you still want email verification)
+    user_.isVerified = true
+    await user_.save()
+
+
+    // Return user data and token
     return res.status(200).json({
       status: true,
       data: {
-        message: `A verification email has been sent to ${firstName} `
+        user: user_,
+        token: token
       },
       message: "Patient Record Created"
-    })
+    });
+
+    // return res.status(200).json({
+    //   status: true,
+    //   data: {
+    //     user: user_,
+    //     token: token
+    //   },
+    //   message: `A verification email has been sent to ${user_?.firstName}`
+    // });
+
   } catch (error: any) {
     res.status(statusCode).json({ status: false, message: error.message })
   }
@@ -569,7 +589,6 @@ passport.use(new GoogleStrategy.Strategy({
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
 }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
   try {
-    console.log('Google auth profile:', profile);
     const { id: googleId, _json } = profile
 
     // First try to find user by Google ID
