@@ -392,7 +392,7 @@ const register = async (req: Request, res: Response) => {
     const token = (user_ as any).generateJWT()
 
     // Set user as verified to allow immediate access (optional - remove if you still want email verification)
-    user_.isVerified = true
+    // user_.isVerified = true
     await user_.save()
 
 
