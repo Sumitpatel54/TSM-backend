@@ -11,12 +11,19 @@ router.post("/upgradeSubscription", requireUserToLogin, StripeContorller.upgrade
 router.post("/unsubscribe", requireUserToLogin, StripeContorller.unsubscribeUser as any)
 router.post("/charge", requireUserToLogin, StripeContorller.chargeCard as any)
 //router.post("/webhook", express.raw({ type: "*/*" }), StripeContorller.stripeWebhook as any)
-router.post("/checkout", requireUserToLogin, StripeContorller.checkout as any)
+
+// Modified to allow payment without login for payment-first flow
+router.post("/checkout", StripeContorller.checkout as any)
+
 router.post("/manual-update-paid", requireUserToLogin, StripeContorller.manualUpdatePaidStatus as any)
 router.post("/confirm-payment", StripeContorller.confirmPaymentSuccess as any)
 
 // New coupon routes
 router.post("/validate-coupon", requireUserToLogin, StripeContorller.validateCoupon as any)
 router.get("/list-coupons", requireUserToLogin, StripeContorller.listAvailableCoupons as any)
+
+// New routes for payment-first flow
+router.get("/verify-session/:sessionId", StripeContorller.verifyCheckoutSession as any)
+router.post("/register-after-payment", StripeContorller.registerAfterPayment as any)
 
 export = router

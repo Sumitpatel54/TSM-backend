@@ -4,6 +4,7 @@ import HttpStatusCode from "http-status-codes"
 import Stripe from "stripe"
 import StripeService from "../services/stripe.service"
 import UserService from "../services/user.service"
+import TempPaymentService from "../services/temp-payment.service"
 import config from "../configurations/config"
 import HttpException from "../exceptions/HttpException"
 import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
@@ -69,9 +70,16 @@ export const postWebhook = async (req: any, res: Response, next: NextFunction) =
                 // Only mark as paid if payment was successful
                 if (session.payment_status === 'paid') {
                     const userId = session.metadata?.userId
-                    console.log(`Checkout session completed with payment_status=paid, userId=${userId}`)
+                    const paymentFirst = session.metadata?.paymentFirst === 'true'
+                    console.log(`Checkout session completed with payment_status=paid, userId=${userId}, paymentFirst=${paymentFirst}`)
 
-                    if (userId) {
+                    // Handle payment-first flow
+                    if (paymentFirst) {
+                        console.log(`Processing payment-first flow for session=${session.id}`)
+                        await handlePaymentFirstFlow(session)
+                    }
+                    // Handle regular flow with existing user
+                    else if (userId) {
                         if (session.mode === 'payment') {
                             console.log(`Processing one-time payment for userId=${userId}`)
                             // Handle one-time payment
@@ -126,13 +134,59 @@ export const postWebhook = async (req: any, res: Response, next: NextFunction) =
                 console.log(`Unhandled event type ${event.type}`)
         }
 
-        // Return a response to acknowledge receipt of the event
-        return res.status(HttpStatusCode.OK).send({
-            status: true,
-            message: "Webhook event handled"
+        // Return a 200 response to acknowledge receipt of the event
+        res.status(200).json({ received: true })
+    }
+    catch (error: any) {
+        console.error("Error processing webhook:", error)
+        return res.status(500).send(`Webhook Error: ${error.message}`)
+    }
+}
+
+/**
+ * Handle the payment-first flow when a checkout session is completed
+ * @param session Stripe checkout session
+ */
+const handlePaymentFirstFlow = async (session: any) => {
+    try {
+        console.log(`Handling payment-first flow for session ${session.id}`)
+
+        // Find the temporary payment record
+        const tempPayment = await TempPaymentService.findByCheckoutSessionId(session.id)
+
+        if (!tempPayment) {
+            console.error(`No temporary payment record found for session ${session.id}`)
+
+            // Try to create a new record if one doesn't exist
+            try {
+                await TempPaymentService.createTempPayment({
+                    checkoutSessionId: session.id,
+                    paymentStatus: 'succeeded',
+                    paymentType: session.mode === 'subscription' ? 'SUBSCRIPTION' : 'ONE_TIME_PURCHASE',
+                    amount: session.amount_total ? session.amount_total / 100 : 0,
+                    currency: session.currency || 'usd',
+                    paymentIntentId: session.payment_intent,
+                    metadata: session.metadata,
+                    email: session.customer_details?.email
+                })
+                console.log(`Created new temporary payment record for session ${session.id}`)
+            } catch (createError) {
+                console.error(`Failed to create temporary payment record: ${createError}`)
+            }
+
+            return
+        }
+
+        // Update the payment status
+        await TempPaymentService.updateByCheckoutSessionId(session.id, {
+            paymentStatus: 'succeeded',
+            paymentIntentId: session.payment_intent,
+            email: session.customer_details?.email || tempPayment.email
         })
-    } catch (error: any) {
-        next(new HttpException(HttpStatusCode.INTERNAL_SERVER_ERROR, error.message))
+
+        console.log(`Updated temporary payment record for session ${session.id}`)
+    } catch (error) {
+        console.error(`Error handling payment-first flow for session ${session.id}:`, error)
     }
 }
 

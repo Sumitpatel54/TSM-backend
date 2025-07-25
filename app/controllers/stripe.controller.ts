@@ -9,9 +9,12 @@ import HttpException from "../exceptions/HttpException"
 import HttpStatusCode from "http-status-codes"
 import StripeService from "../services/stripe.service"
 import UserService from "../services/user.service"
+import TempPaymentService from "../services/temp-payment.service"
 import CommonFunctions from "../utilities/common"
 import User from "../models/user.model"
 import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
+// Import the email verification function
+import { sendEmailVerification } from "../utils/email.util"
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
   apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion || '2020-08-27',
@@ -240,8 +243,9 @@ const upgradeSubscription = async (req: Request, res: Response) => {
 */
 const checkout = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // For payment-first flow, userId is optional
     const userId: any = req.user?.id
-    let { paymentType, planId, priceId, amount, currency } = req.body
+    let { paymentType, planId, priceId, amount, currency, email } = req.body
     let intent: Stripe.SetupIntent | Stripe.PaymentIntent | undefined
 
     // validate paymentType
@@ -265,81 +269,89 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid currency to process further'))
     }
 
-    // get user
-    let user: any = await UserService.findUser({ _id: userId })
-    user = user?.toObject()
+    // For payment-first flow, we don't require a user to be logged in
+    let stripeCustomerId = null
+    let user = null
 
-    // create stripe customer
-    if (!user.stripeCustomerId) {
+    // If userId exists, get the user's stripe customer ID
+    if (userId) {
+      user = await UserService.findUser({ _id: userId })
+      user = user?.toObject()
+      stripeCustomerId = user?.stripeCustomerId
+    }
+
+    const FRONTEND_URL = process.env.NODE_ENV === 'production'
+      ? 'https://client.curemigraine.org'
+      : 'http://localhost:3000'
+
+    // Create the session options object without customer field initially
+    const sessionOptions: Stripe.Checkout.SessionCreateParams = {
+      line_items: [{
+        price: priceId,
+        quantity: 1,
+      }],
+      allow_promotion_codes: true,
+      metadata: {
+        userId: userId || '',
+        action: paymentType === 'SUBSCRIPTION' ? "SUBSCRIPTION_MADE" : "ONE_TIME_PAYMENT",
+        gateway: "STRIPE",
+        product: planId,
+        price: priceId,
+        paymentFirst: userId ? 'false' : 'true',
+        email: email || '',
+      },
+      success_url: userId
+        ? `${FRONTEND_URL}/payment-success?userId=${userId}&status=success`
+        : `${FRONTEND_URL}/register?sessionId={CHECKOUT_SESSION_ID}&status=success`,
+      cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
+    }
+
+    // Only add customer if we have a valid stripeCustomerId or valid email
+    if (stripeCustomerId) {
+      sessionOptions.customer = stripeCustomerId
+    } else if (email && email.trim() !== '') {
+      // Create a new customer with the provided email
       try {
-        const customer = await stripe.customers.create({ email: user.email })
-        await UserService.updateUser(userId, { stripeCustomerId: customer.id })
-        user.stripeCustomerId = customer.id
-      }
-      catch (error: any) {
-        console.log(error)
+        const customer = await stripe.customers.create({
+          email: email.trim()
+        })
+        sessionOptions.customer = customer.id
+      } catch (error) {
+        console.error('Error creating customer:', error)
+        // Continue without customer ID if creation fails
       }
     }
 
-    const FRONTEND_URL = 'https://client.curemigraine.org'
+    // Set the mode based on payment type
+    sessionOptions.mode = paymentType === 'SUBSCRIPTION' ? 'subscription' : 'payment'
 
-    if (paymentType === 'SUBSCRIPTION') {
-      const session = await stripe.checkout.sessions.create({
-        customer: user?.stripeCustomerId,
-        line_items: [{
-          price: priceId,
-          quantity: 1,
-        }],
-        mode: 'subscription',
-        allow_promotion_codes: true,
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create(sessionOptions)
+
+    // Store temp payment info if this is a payment-first flow
+    if (!userId) {
+      await TempPaymentService.createTempPayment({
+        checkoutSessionId: session.id,
+        paymentStatus: 'pending',
+        paymentType,
+        amount: parseFloat(amount),
+        currency,
         metadata: {
-          userId,
-          action: "SUBSCRIPTION_MADE",
-          gateway: "STRIPE",
           product: planId,
           price: priceId,
         },
-        success_url: `${FRONTEND_URL}/payment-success?userId=${userId}&status=success`,
-        cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
-      });
-
-      return res.status(200).send({
-        status: true,
-        data: {
-          sessionUrl: session.url
-        }
-      });
-
-    } else if (paymentType === 'ONE_TIME_PURCHASE') {
-      const session = await stripe.checkout.sessions.create({
-        customer: user?.stripeCustomerId,
-        line_items: [{
-          price: priceId,
-          quantity: 1,
-        }],
-        mode: 'payment',
-        allow_promotion_codes: true,
-        metadata: {
-          userId,
-          action: "ONE_TIME_PAYMENT",
-          gateway: "STRIPE",
-          product: planId,
-          price: priceId,
-        },
-        success_url: `${FRONTEND_URL}/payment-success?userId=${userId}&status=success`,
-        cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
-      });
-
-      return res.status(200).send({
-        status: true,
-        data: {
-          sessionUrl: session.url
-        }
-      });
+        email: email && email.trim() !== '' ? email.trim() : undefined,
+      })
     }
 
-    throw new Error(`Sorry some errors occurred while creating payment intent`)
+    return res.status(200).send({
+      status: true,
+      data: {
+        sessionUrl: session.url
+      }
+    })
   } catch (error: any) {
+    console.error('Checkout error:', error.message)
     return res.status(500).send({
       status: false,
       message: error.message
@@ -531,4 +543,223 @@ const confirmPaymentSuccess = async (req: Request, res: Response) => {
   }
 };
 
-export default { getAllProductsAndPlans, createSubscription, chargeCard, unsubscribeUser, upgradeSubscription, checkout, validateCoupon, listAvailableCoupons, manualUpdatePaidStatus, confirmPaymentSuccess }
+/**
+ * Verify a checkout session and return its status
+ * @param req Request
+ * @param res Response
+ * @returns JSON
+ */
+const verifyCheckoutSession = async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).send({
+        status: false,
+        message: 'Session ID is required'
+      });
+    }
+
+    console.log(`Verifying checkout session: ${sessionId}`);
+
+    // Retrieve the session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log(`Session payment status: ${session.payment_status}`);
+
+    // Check if the payment was successful
+    const isPaymentSuccessful = session.payment_status === 'paid';
+
+    // Retrieve the temp payment record
+    let tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
+
+    // If no temp payment record is found but payment was successful, create one
+    if (!tempPayment && isPaymentSuccessful) {
+      console.log(`No temporary payment record found for session ${sessionId}, creating one`);
+
+      try {
+        tempPayment = await TempPaymentService.createTempPayment({
+          checkoutSessionId: sessionId,
+          paymentStatus: 'succeeded',
+          paymentType: session.mode === 'subscription' ? 'SUBSCRIPTION' : 'ONE_TIME_PURCHASE',
+          amount: session.amount_total ? session.amount_total / 100 : 0,
+          currency: session.currency || 'usd',
+          paymentIntentId: session.payment_intent as string,
+          metadata: session.metadata,
+          email: session.customer_details?.email || undefined
+        });
+
+        console.log(`Created new temporary payment record for session ${sessionId}`);
+      } catch (createError) {
+        console.error(`Failed to create temporary payment record: ${createError}`);
+      }
+    }
+
+    // If we still don't have a temp payment record, return an error
+    if (!tempPayment) {
+      console.error(`No temporary payment record found for session ${sessionId} and couldn't create one`);
+      return res.status(404).send({
+        status: false,
+        message: 'Payment record not found'
+      });
+    }
+
+    // If the payment was successful but the status in our DB is still pending, update it
+    if (isPaymentSuccessful && tempPayment.paymentStatus === 'pending') {
+      console.log(`Updating payment status to succeeded for session ${sessionId}`);
+      await TempPaymentService.updateByCheckoutSessionId(sessionId, {
+        paymentStatus: 'succeeded',
+        paymentIntentId: session.payment_intent as string,
+        email: session.customer_details?.email || tempPayment.email
+      });
+
+      // Refresh the temp payment data
+      tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId) || tempPayment;
+    }
+
+    return res.status(200).send({
+      status: true,
+      data: {
+        paymentSuccessful: isPaymentSuccessful,
+        sessionId: sessionId,
+        paymentStatus: session.payment_status,
+        paymentType: tempPayment.paymentType,
+        amount: tempPayment.amount,
+        currency: tempPayment.currency,
+        email: tempPayment.email || session.customer_details?.email,
+      }
+    });
+  } catch (error: any) {
+    console.error(`Error verifying checkout session: ${error.message}`);
+    return res.status(500).send({
+      status: false,
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Register a user after successful payment
+ * @param req Request
+ * @param res Response
+ * @returns JSON
+ */
+const registerAfterPayment = async (req: Request, res: Response) => {
+  let statusCode = 500;
+
+  try {
+    const { sessionId, firstName, lastName, email, password, age } = req.body;
+
+    // Validate required fields
+    if (!sessionId || !firstName || !lastName || !email || !password || !age) {
+      statusCode = 400;
+      throw new Error('All fields are required');
+    }
+
+    // Verify the session exists and payment was successful
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== 'paid') {
+      statusCode = 400;
+      throw new Error('Payment was not successful');
+    }
+
+    // Check if the temp payment record exists
+    const tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
+
+    if (!tempPayment) {
+      statusCode = 404;
+      throw new Error('Payment record not found');
+    }
+
+    // Check if this session was already used to register a user
+    if (tempPayment.paymentStatus === 'registered') {
+      statusCode = 400;
+      throw new Error('This payment has already been used to register a user');
+    }
+
+    // Check if user with this email already exists
+    const existingUser = await UserService.findUser({ email });
+
+    if (existingUser) {
+      statusCode = 400;
+      throw new Error(`The email address ${email} already exists.`);
+    }
+
+    // Create the user
+    const user = await UserService.createUser({
+      email,
+      password,
+      firstName,
+      lastName,
+      age: Number(age),
+      role: "patient",
+      isPaid: true,
+      exerciseStartDate: new Date(),
+      isVerified: false // Changed from true to false to require email verification
+    });
+
+    // Update the temp payment record
+    await TempPaymentService.updateByCheckoutSessionId(sessionId, {
+      paymentStatus: 'registered',
+      email
+    });
+
+    // Create financial record
+    const financialData = {
+      userId: user._id,
+      currency: tempPayment.currency,
+      amount: tempPayment.amount,
+      status: 'succeeded',
+      paymentType: tempPayment.paymentType === 'SUBSCRIPTION' ? 'recurring' : 'one-time',
+      stripeReference: session.payment_intent as string,
+      checkoutSessionId: sessionId
+    };
+
+    await StripeService.createFinancialRecord(financialData);
+
+    // Send email verification
+    await sendEmailVerification(user, req);
+
+    // Generate token for the user
+    const token = (user as any).generateJWT();
+
+    // Send email notification
+    addJobSendMailQuestionLinkCreation(
+      {
+        userId: user._id,
+        email: user.email,
+        userName: `${user.firstName} ${user.lastName}`
+      },
+      user._id
+    );
+
+    return res.status(200).json({
+      status: true,
+      data: {
+        user,
+        token
+      },
+      message: "Registration successful! Please check your email to verify your account."
+    });
+  } catch (error: any) {
+    return res.status(statusCode).json({
+      status: false,
+      message: error.message
+    });
+  }
+};
+
+export default {
+  getAllProductsAndPlans,
+  createSubscription,
+  chargeCard,
+  unsubscribeUser,
+  upgradeSubscription,
+  checkout,
+  validateCoupon,
+  listAvailableCoupons,
+  manualUpdatePaidStatus,
+  confirmPaymentSuccess,
+  verifyCheckoutSession,
+  registerAfterPayment
+}
