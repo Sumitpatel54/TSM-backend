@@ -36,13 +36,10 @@ const SERVER = {
 const LOCAL_SERVER = {
   // host_url: 'http://localhost:3000',
   host_url: 'https://client.curemigraine.org',
-  // host_url: 'https://tsm-web.vercel.app',
 }
 
-// const API_URL = 'http://ec2-13-61-69-144.eu-north-1.compute.amazonaws.com:8000'
 const API_URL = 'https://api.curemigraine.org'
-// const API_URL = 'https://tsm-prod.vercel.app'
-// const API_URL = 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app'
+// const API_URL = 'http://localhost:8000'
 
 const JWT = {
   accessTokenPrivateKey: process.env.ACCESS_TOKEN_SECRET || "secret",

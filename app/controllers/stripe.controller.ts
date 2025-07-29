@@ -282,7 +282,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
 
     const FRONTEND_URL = process.env.NODE_ENV === 'production'
       ? 'https://client.curemigraine.org'
-      : 'http://localhost:3000'
+      : 'https://client.curemigraine.org'
 
     // Create the session options object without customer field initially
     const sessionOptions: Stripe.Checkout.SessionCreateParams = {
