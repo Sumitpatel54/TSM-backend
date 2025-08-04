@@ -245,7 +245,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // For payment-first flow, userId is optional
     const userId: any = req.user?.id
-    let { paymentType, planId, priceId, amount, currency, email } = req.body
+    let { paymentType, planId, priceId, amount, currency, email, flow } = req.body
     let intent: Stripe.SetupIntent | Stripe.PaymentIntent | undefined
 
     // validate paymentType
@@ -299,10 +299,11 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
         price: priceId,
         paymentFirst: userId ? 'false' : 'true',
         email: email || '',
+        flow: flow || (userId ? 'register-first' : 'payment-first'),
       },
-      success_url: userId
-        ? `${FRONTEND_URL}/payment-success?userId=${userId}&status=success&flow=register-first`
-        : `${FRONTEND_URL}/register?sessionId={CHECKOUT_SESSION_ID}&status=success&flow=payment-first`,
+      success_url: req.body.flow === 'payment-first'
+        ? `${FRONTEND_URL}/register?sessionId={CHECKOUT_SESSION_ID}&status=success&flow=payment-first`
+        : `${FRONTEND_URL}/payment-success?userId=${userId || ''}&status=success&flow=register-first`,
       cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
     }
 
@@ -339,6 +340,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
         metadata: {
           product: planId,
           price: priceId,
+          flow: flow || 'payment-first',
         },
         email: email && email.trim() !== '' ? email.trim() : undefined,
       })
@@ -602,7 +604,10 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
           amount: session.amount_total ? session.amount_total / 100 : 0,
           currency: session.currency || 'usd',
           paymentIntentId: session.payment_intent as string,
-          metadata: session.metadata,
+          metadata: {
+            ...session.metadata,
+            flow: session.metadata?.flow || 'payment-first'
+          },
           email: session.customer_details?.email || undefined
         });
 
