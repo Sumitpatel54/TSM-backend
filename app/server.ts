@@ -38,6 +38,7 @@ import testRoutes from "./routes/test.route"
 import userRoutes from "./routes/user.route"
 import dailyTipRoutes from "./routes/daily-tip.routes";
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
+import authBypassRoutes from "./routes/auth-bypass.route"
 
 // Suppress AWS SDK v2 maintenance warning
 process.env.AWS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = 'true';
@@ -235,6 +236,7 @@ app.use("/stressManagement", stressManagementRoutes)
 app.use("/program", programRoutes)
 app.use("/financial", stripeRoutes)
 app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
+app.use("/api/public", authBypassRoutes) // New route that completely bypasses authentication
 app.use('/stats', statsRoutes)
 app.use('/user', userRoutes)
 app.use("/dailyTips", dailyTipRoutes)
@@ -251,6 +253,16 @@ app.get("/", (_req: Request, res: Response) => {
 const httpServer = http.createServer(app)
 const PORT = process.env.PORT || 8000;
 
+
+// Global error handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+    console.error("Global error handler caught:", err);
+    res.status(err.status || 500).json({
+        status: false,
+        message: err.message || "Internal Server Error",
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+});
 
 httpServer.listen(PORT, () => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)

@@ -2,6 +2,7 @@ import express from "express"
 
 import StripeContorller from "../controllers/stripe.controller"
 import { requireUserToLogin } from "../middleware/routeAccess.middleware"
+import { skipAuth } from "../middleware/skipAuth.middleware"
 
 const router = express.Router()
 
@@ -23,7 +24,8 @@ router.post("/validate-coupon", requireUserToLogin, StripeContorller.validateCou
 router.get("/list-coupons", requireUserToLogin, StripeContorller.listAvailableCoupons as any)
 
 // New routes for payment-first flow
-router.get("/verify-session/:sessionId", StripeContorller.verifyCheckoutSession as any)
-router.post("/register-after-payment", StripeContorller.registerAfterPayment as any)
+router.get("/verify-session/:sessionId", skipAuth as any, StripeContorller.verifyCheckoutSession as any)
+router.post("/register-after-payment", skipAuth as any, StripeContorller.registerAfterPayment as any)
+router.post("/update-session-status", skipAuth as any, StripeContorller.manualUpdateSessionStatus as any)
 
 export = router

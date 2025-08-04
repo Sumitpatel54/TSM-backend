@@ -387,7 +387,7 @@ const register = async (req: Request, res: Response) => {
     const user_ = await UserService.createUser({ email, password, firstName, lastName, age: Number(age), role: "patient" })
 
     // send email verification
-    await sendEmailVerification(user_, req)
+    // await sendEmailVerification(user_, req)
 
     // Generate token for immediate use
     const token = (user_ as any).generateJWT()
@@ -417,6 +417,7 @@ const register = async (req: Request, res: Response) => {
     // });
 
   } catch (error: any) {
+    console.log("Error in register controller:", error)
     res.status(statusCode).json({ status: false, message: error.message })
   }
 }
@@ -697,10 +698,6 @@ const googleCallback = async (req: Request, res: Response) => {
       console.log('Invalid Google callback data structure');
       return res.redirect('https://client.curemigraine.org/login?error=invalid_data');
     }
-
-    console.log('User ID:', data.user._id);
-    console.log('User email:', data.user.email);
-    console.log('User role:', data.user.role);
 
     // Generate a temporary token
     const tempToken = uuidv4();
