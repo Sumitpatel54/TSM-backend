@@ -48,40 +48,22 @@ const JWT = {
   refreshTokenExpiresIn: process.env.REFRESH_TOKEN_LIFE
 }
 
-// const SMTP_CONFIGURATION = {
-//   SMTP_HOST: process.env.SMTP_HOST || "",
-//   SMTP_PORT: process.env.SMTP_PORT || "2525",
-//   SMTP_USERNAME: process.env.SMTP_USERNAME || "",
-//   SMTP_PASSWORD: process.env.SMTP_PASSWORD || "",
-//   EMAIL_FROM: process.env.MAIL_FROM || ""
-// }
-
 const GOOGLE_OAUTH_CREDENTIALS = {
   CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   AUTH_REDIRECT_URL: process.env.GOOGLE_OAUTH_REDIRECT_URL
 }
 
-// const aws_parameters = {
-//   accessKeyId: process.env.ACCESS_KEY_ID,
-//   secretAccessKey: process.env.SECRET_ACCESS_KEY,
-//   bucket: process.env.BUCKET,
-//   root_folder: process.env.BUCKET_APP_ROOT_FOLDER || ""
-// }
-
-// Byttet ut SendGrid med SES
-const ses = {
-  FROM_EMAIL: process.env.SES_FROM_EMAIL || "default@email.com",
-  REGION: process.env.AWS_REGION || "eu-north-1" // Bruker Stockholm som fallback
+// **** HER ER ENDRINGEN ****
+// Vi bytter ut SendGrid med SMTP-innstillinger for SES
+const smtp = {
+  HOST: process.env.SMTP_HOST || "",
+  PORT: process.env.SMTP_PORT || 587,
+  USER: process.env.SMTP_USER || "",
+  PASS: process.env.SMTP_PASS || "",
+  FROM_EMAIL: process.env.SMTP_FROM || "default@email.com"
 }
-
-// const sendSendbird = {
-//   APPLICATION_ID: process.env.SENDBIRD_APPLICATION_ID || "",
-//   API_TOKEN: process.env.SENDBIRD_API_TOKEN || ""
-// }
-// const ellingsenxMongoUrl = process.env.ELLINGSEN_MONGO_URL || ""
-
-// const TOKEN_ISSUER = process.env.TOKEN_ISSUER || ""
+// **** ENDRING SLUTT ****
 
 const routePermission = {
   onlyAdmin: ["admin"],
@@ -102,7 +84,7 @@ const redis = {
 const config = {
   server: SERVER,
   mongo: MONGO,
-  ses, // <--- Endret fra sendGrid til ses
+  smtp, // <--- HER ER ENDRINGEN (erstattet sendGrid)
   jwt: JWT,
   SERVER_HOSTNAME,
   routePermission,
