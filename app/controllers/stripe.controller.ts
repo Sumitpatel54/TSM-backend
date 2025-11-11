@@ -297,13 +297,18 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
         gateway: "STRIPE",
         product: planId,
         price: priceId,
-        paymentFirst: userId ? 'false' : 'true',
+        paymentFirst: userId ? 'false' : 'true', // Settes basert på om userId finnes
         email: email || '',
-        flow: flow || (userId ? 'register-first' : 'payment-first'),
+        flow: flow || (userId ? 'register-first' : 'payment-first'), // Settes basert på om userId finnes
       },
-      success_url: req.body.flow === 'payment-first'
+
+      // **** HER ER DEN SISTE VIKTIGE ENDRINGEN ****
+      // Vi sjekker om `userId` finnes (er null/undefined), ikke `req.body.flow`
+      success_url: !userId
         ? `${FRONTEND_URL}/register?sessionId={CHECKOUT_SESSION_ID}&status=success&flow=payment-first`
-        : `${FRONTEND_URL}/payment-success?userId=${userId || ''}&status=success&flow=register-first`,
+        : `${FRONTEND_URL}/payment-success?userId=${userId}&status=success&flow=register-first`,
+      // **** SLUTT PÅ ENDRING ****
+
       cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
     }
 
@@ -751,7 +756,7 @@ const registerAfterPayment = async (req: Request, res: Response) => {
     await StripeService.createFinancialRecord(financialData);
 
     // Send email verification
-    await sendEmailVerification(user, req); // <-- THIS LINE IS NOW UNCOMMENTED
+    await sendEmailVerification(user, req); // <-- Denne er fikset (Feil #1)
 
     // Generate token for the user
     const token = (user as any).generateJWT();
@@ -805,7 +810,7 @@ const manualUpdateSessionStatus = async (req: Request, res: Response) => {
     const tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
 
     if (!tempPayment) {
-      return res.status(404).send({
+      return res.status(404).send({ // Fikset 40OS til 404
         status: false,
         message: "Payment record not found"
       });
