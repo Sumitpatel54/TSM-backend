@@ -69,10 +69,10 @@ const GOOGLE_OAUTH_CREDENTIALS = {
 //   root_folder: process.env.BUCKET_APP_ROOT_FOLDER || ""
 // }
 
-const sendGrid = {
-  API_KEY: process.env.SENDGRID_API_KEY || "",
-  FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || "",
-  VERIFY_ADMIN_TEMPLATE: process.env.SENDGRID_VERIFY_ADMIN_TEMPLATE || ""
+// Byttet ut SendGrid med SES
+const ses = {
+  FROM_EMAIL: process.env.SES_FROM_EMAIL || "default@email.com",
+  REGION: process.env.AWS_REGION || "eu-north-1" // Bruker Stockholm som fallback
 }
 
 // const sendSendbird = {
@@ -102,7 +102,7 @@ const redis = {
 const config = {
   server: SERVER,
   mongo: MONGO,
-  sendGrid,
+  ses, // <--- Endret fra sendGrid til ses
   jwt: JWT,
   SERVER_HOSTNAME,
   routePermission,
