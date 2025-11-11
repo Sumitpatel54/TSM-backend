@@ -4,15 +4,16 @@
         "module": "CommonJS",
         "typeRoots": [
             "app/@types",
-            "./node_modules/@types",
-            
+            "./node_modules/@types"
         ],
-     
         "outDir": "build",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "skipLibCheck": true
     },
-    "include": ["./api/*.ts"],
+    "include": [
+        "app/**/*.ts", // <-- DENNE ER NY (Inkluderer hele app-mappen)
+        "api/**/*.ts"  // <-- DENNE ER NY (Inkluderer api-mappen)
+    ]
 }
