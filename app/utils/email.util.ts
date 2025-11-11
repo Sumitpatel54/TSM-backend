@@ -1,10 +1,12 @@
 import config from "../configurations/config"
 
+// DU MÅ ENDRE DETTE: Bytt ut sendgrid med din SES-klient
 const sendGridMail = require("@sendgrid/mail")
 sendGridMail.setApiKey(config.sendGrid.API_KEY)
 
 
 export const sendEmail = async (obj: any) => {
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send(obj)
 }
 
@@ -20,6 +22,7 @@ export const sendEmailIfUserAbruptlyLeavesQuestionnaire = async (user: any, _req
     let html = `
     <p>Hi ${user.firstName},<p><br><p>This is a reminder thet a questionnaire is waiting for you to complete.</p>`
 
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -35,6 +38,7 @@ export const sendEmailIfUserDoesNotContinueToQuestionnaire = async (user: any, _
     let html = `
     <p>Hi ${user.firstName},<p><br><p>This is a reminder thet a questionnaire is waiting for you to complete.</p>`
 
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -50,6 +54,7 @@ export const sendEmailIfUserNotSignupButMakesPayment = async (user: any, _req: a
     let html = `
     <p>Hi ${user.firstName},<p><br><p>This is a reminder to sign up to enjoy more of our product features.</p>`
 
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -61,9 +66,11 @@ export const sendEmailVerification = async (user: any, req: any) => {
 
     let subject = 'Confirm Your Email to Begin Your Journey'
     let to = user.email
-    let from = `${config.sendGrid.FROM_EMAIL}`
-    let link = `${config.LOCAL_SERVER.host_url}/auth/checkAuthentication/${user.email}/${token.token}`
-    // let link = 'https://' + req.headers.host + '/auth/verify/' + token.token
+    let from = `${config.sendGrid.FROM_EMAIL}` // DU MÅ KANSKJE ENDRE DENNE
+    
+    // **** DENNE LINJEN ER KORRIGERT (Feil #2) ****
+    let link = `${config.LOCAL_SERVER.host_url}/auth/verify/${token.token}`
+    
     let html = `
     <p>Hi ${user.firstName},
     <p>Welcome to The Scandinavian Method! We’re excited to help you take the first step toward a migraine-free life.</p>
@@ -77,7 +84,7 @@ export const sendEmailVerification = async (user: any, req: any) => {
     The Scandinavian Method Team
     </p>
     `
-
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -89,11 +96,12 @@ export const sendEmailResetPassword = async (user: any, req: any) => {
 
     let subject = 'Accout Verification'
     let to = user.email
-    let from = `${config.sendGrid.FROM_EMAIL}`
+    let from = `${config.sendGrid.FROM_EMAIL}` // DU MÅ KANSKJE ENDRE DENNE
     let link = 'https://' + req.headers.host + '/auth/verify/' + token.token
     let html = `
   <p>Hi ${user.firstName},<p><br><p>Please click on the following <a href="${link}">link</a> to verify your account.</p>`
 
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -105,10 +113,11 @@ export const sendEmailResetPassword = async (user: any, req: any) => {
 export const sendEmailWhenUserFinishesQuestionnaire = async (user: any, _req: any) => {
     let subject = 'Your next step!'
     let to = user.email
-    let from = `${config.sendGrid.FROM_EMAIL}`
+    let from = `${config.sendGrid.FROM_EMAIL}` // DU MÅ KANSKJE ENDRE DENNE
     let html = `
     <p>Hi ${user.firstName}>`
 
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -120,11 +129,12 @@ export const sendEmailWhenUserFinishesQuestionnaire = async (user: any, _req: an
 export const sendEmailWhenUserResetsPassword = async (user: any, _req: any) => {
     let subject = `Reset your password.`
     let to = user.email
-    let from = `${config.sendGrid.FROM_EMAIL}`
+    let from = `${config.sendGrid.FROM_EMAIL}` // DU MÅ KANSKJE ENDRE DENNE
     let html = `
     <p>Hi ${user.firstName}></p>
     <p>Here is`
 
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -136,7 +146,7 @@ export const sendEmailWhenUserResetsPassword = async (user: any, _req: any) => {
 export const sendEmailWhenUserSignsUp = async (user: any, _req: any) => {
     let subject = `Welcome to The Scandinavian Method!`
     let to = user.email
-    let from = `${config.sendGrid.FROM_EMAIL}`
+    let from = `${config.sendGrid.FROM_EMAIL}` // DU MÅ KANSKJE ENDRE DENNE
     let html = `
     <p>Hi ${user.firstName},</p>
     
@@ -175,7 +185,7 @@ export const sendEmailWhenUserSignsUp = async (user: any, _req: any) => {
 
     
     `
-
+    // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
     await sendGridMail.send({ to, from, subject, html })
 }
 
@@ -193,6 +203,7 @@ export const sendTemplate = async (email: string, subject: string, templateId: s
                 dynamic_template_data: dynamicTemplateData
             }
         }
+        // DU MÅ ENDRE DETTE: Bytt ut med din SES send-funksjon
         return await sendGridMail.send(message())
     } catch (error: any) {
         throw new Error(error.message)
