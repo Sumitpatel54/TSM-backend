@@ -304,7 +304,7 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
 
       // **** HER ER DEN SISTE VIKTIGE ENDRINGEN ****
       // Vi sjekker om `userId` finnes (er null/undefined), ikke `req.body.flow`
-      // FORCING A REBUILD - v4
+      // FORCING A REBUILD - v5 (Dette er den "meningsløse" endringen)
       success_url: !userId
         ? `${FRONTEND_URL}/register?sessionId={CHECKOUT_SESSION_ID}&status=success&flow=payment-first`
         : `${FRONTEND_URL}/payment-success?userId=${userId}&status=success&flow=register-first`,
