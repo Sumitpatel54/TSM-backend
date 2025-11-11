@@ -805,7 +805,7 @@ const manualUpdateSessionStatus = async (req: Request, res: Response) => {
     const tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
 
     if (!tempPayment) {
-      return res.status(4OS).send({
+      return res.status(404).send({
         status: false,
         message: "Payment record not found"
       });
