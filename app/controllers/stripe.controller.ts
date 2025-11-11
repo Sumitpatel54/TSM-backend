@@ -428,11 +428,11 @@ const listAvailableCoupons = async (req: Request, res: Response) => {
 };
 
 /**
- * Manual endpoint to update isPaid flag (for testing only)
- * @param req Request
- * @param res Response
- * @returns JSON
- */
+* Manual endpoint to update isPaid flag (for testing only)
+* @param req Request
+* @param res Response
+* @returns JSON
+*/
 const manualUpdatePaidStatus = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body;
@@ -477,11 +477,11 @@ const manualUpdatePaidStatus = async (req: Request, res: Response) => {
 };
 
 /**
- * Handle payment confirmation when user returns from successful payment
- * @param req Request
- * @param res Response
- * @returns JSON
- */
+* Handle payment confirmation when user returns from successful payment
+* @param req Request
+* @param res Response
+* @returns JSON
+*/
 const confirmPaymentSuccess = async (req: Request, res: Response) => {
   try {
     const { userId, status } = req.body;
@@ -546,11 +546,11 @@ const confirmPaymentSuccess = async (req: Request, res: Response) => {
 };
 
 /**
- * Verify a checkout session and return its status
- * @param req Request
- * @param res Response
- * @returns JSON
- */
+* Verify a checkout session and return its status
+* @param req Request
+* @param res Response
+* @returns JSON
+*/
 const verifyCheckoutSession = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
@@ -670,11 +670,11 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
 };
 
 /**
- * Register a user after successful payment
- * @param req Request
- * @param res Response
- * @returns JSON
- */
+* Register a user after successful payment
+* @param req Request
+* @param res Response
+* @returns JSON
+*/
 const registerAfterPayment = async (req: Request, res: Response) => {
   let statusCode = 500;
 
@@ -751,7 +751,7 @@ const registerAfterPayment = async (req: Request, res: Response) => {
     await StripeService.createFinancialRecord(financialData);
 
     // Send email verification
-    // await sendEmailVerification(user, req);
+    await sendEmailVerification(user, req); // <-- THIS LINE IS NOW UNCOMMENTED
 
     // Generate token for the user
     const token = (user as any).generateJWT();
@@ -784,12 +784,12 @@ const registerAfterPayment = async (req: Request, res: Response) => {
 };
 
 /**
- * Manually update the payment status for a specific checkout session
- * This is useful for fixing records where payment was successful but status is still pending
- * @param req Request
- * @param res Response
- * @returns JSON
- */
+* Manually update the payment status for a specific checkout session
+* This is useful for fixing records where payment was successful but status is still pending
+* @param req Request
+* @param res Response
+* @returns JSON
+*/
 const manualUpdateSessionStatus = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.body;
@@ -805,7 +805,7 @@ const manualUpdateSessionStatus = async (req: Request, res: Response) => {
     const tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
 
     if (!tempPayment) {
-      return res.status(404).send({
+      return res.status(4OS).send({
         status: false,
         message: "Payment record not found"
       });
