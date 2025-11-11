@@ -13,7 +13,7 @@
         "skipLibCheck": true
     },
     "include": [
-        "app/**/*.ts", // <-- DENNE ER NY (Inkluderer hele app-mappen)
-        "api/**/*.ts"  // <-- DENNE ER NY (Inkluderer api-mappen)
+        "app/**/*.ts",
+        "api/**/*.ts"
     ]
 }
