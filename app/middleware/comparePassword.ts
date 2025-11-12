@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt"
+import * as bcrypt from "bcrypt"
 import HttpStatusCode from "http-status-codes"
 
 import { Request, Response, NextFunction } from "../interfaces/express.interface"
