@@ -17,7 +17,7 @@ import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
 import { sendEmailVerification } from "../utils/email.util"
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
-  apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion || '2020-08-27',
+  apiVersion: '2022-08-01',
   typescript: true,
   appInfo: {
     name: 'TSM Payment',
