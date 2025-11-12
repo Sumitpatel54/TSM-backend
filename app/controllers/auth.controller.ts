@@ -7,7 +7,7 @@ import HttpStatusCode from "http-status-codes"
 import { suid } from 'rand-token'
 import validator from 'validator'
 import User from '../models/user.model'
-import * as passport from 'passport'
+import passport from 'passport'
 import * as GoogleStrategy from "passport-google-oauth20"
 // import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 
