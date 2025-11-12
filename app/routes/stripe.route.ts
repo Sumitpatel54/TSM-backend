@@ -27,7 +27,9 @@ router.get("/list-coupons", requireUserToLogin, StripeContorller.listAvailableCo
 
 // New routes for payment-first flow
 router.get("/verify-session/:sessionId", skipAuth as any, StripeContorller.verifyCheckoutSession as any)
-router.post("/register-after-payment", skipAuth as any, StripeContorller.registerAfterPayment as any)
-router.post("/update-session-status", skipAuth as any, StripeContorller.manualUpdateSessionStatus as any)
+// Replaced registerAfterPayment with confirmPaymentSuccess
+router.post("/confirm-payment-success", skipAuth as any, StripeContorller.confirmPaymentSuccess as any) 
+// Corrected function name from manualUpdateSessionStatus to manualUpdatePaidStatus
+router.post("/update-paid-status", skipAuth as any, StripeContorller.manualUpdatePaidStatus as any) 
 
 export = router
