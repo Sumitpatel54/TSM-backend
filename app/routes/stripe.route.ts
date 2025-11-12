@@ -3,6 +3,7 @@ import express from "express"
 import StripeContorller from "../controllers/stripe.controller"
 import { requireUserToLogin } from "../middleware/routeAccess.middleware"
 import { skipAuth } from "../middleware/skipAuth.middleware"
+import { optionalAuth } from "../middleware/optionalAuth.middleware" // <-- 1. IMPORTER DEN NYE
 
 const router = express.Router()
 
@@ -13,8 +14,9 @@ router.post("/unsubscribe", requireUserToLogin, StripeContorller.unsubscribeUser
 router.post("/charge", requireUserToLogin, StripeContorller.chargeCard as any)
 //router.post("/webhook", express.raw({ type: "*/*" }), StripeContorller.stripeWebhook as any)
 
-// Modified to allow payment without login for payment-first flow
-router.post("/checkout", StripeContorller.checkout as any)
+// **** 2. LEGG TIL MIDDLEWARE HER ****
+// Denne ruten bruker nå "optionalAuth" for å sjekke om en bruker ER logget inn
+router.post("/checkout", optionalAuth as any, StripeContorller.checkout as any)
 
 router.post("/manual-update-paid", requireUserToLogin, StripeContorller.manualUpdatePaidStatus as any)
 router.post("/confirm-payment", StripeContorller.confirmPaymentSuccess as any)
