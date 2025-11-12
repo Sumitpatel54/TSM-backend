@@ -1,5 +1,5 @@
 import HttpStatusCode from "http-status-codes"
-import jwt from "jsonwebtoken"
+import * as jwt from "jsonwebtoken"
 import { get } from "lodash"
 
 import { Response, NextFunction } from "../interfaces/express.interface"
