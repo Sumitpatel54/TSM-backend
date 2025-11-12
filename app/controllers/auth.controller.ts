@@ -7,8 +7,8 @@ import HttpStatusCode from "http-status-codes"
 import { suid } from 'rand-token'
 import validator from 'validator'
 import User from '../models/user.model'
-import passport from 'passport'
-import GoogleStrategy from "passport-google-oauth20"
+import * as passport from 'passport'
+import * as GoogleStrategy from "passport-google-oauth20"
 // import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 
 // import config from "../configurations/config"
@@ -22,7 +22,7 @@ import config from '../configurations/config'
 import { Session } from 'express-session';
 import { v4 as uuidv4 } from 'uuid';
 import TempToken from '../models/tempToken.model'; // You'll need to create this model
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 
