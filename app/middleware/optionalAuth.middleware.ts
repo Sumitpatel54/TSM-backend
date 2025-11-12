@@ -1,5 +1,10 @@
+// # FILE: app/middleware/optionalAuth.middleware.ts
+// # REASON: This middleware checks for an auth token. 
+// # If a valid token exists, it adds the user to req.user. 
+// # If no token exists, it continues without error, allowing guest checkout.
+
 import HttpStatusCode from "http-status-codes"
-import jwt from "jsonwebtoken"
+import * as jwt from "jsonwebtoken" // # CHANGE: Added "* as" to fix "no default export" build error.
 import { get } from "lodash"
 
 import { Response, NextFunction } from "../interfaces/express.interface"
@@ -7,16 +12,11 @@ import RequestWithUser from "../interfaces/requestWithUser"
 import UserService from "../services/user.service"
 import { decode } from "../utils/jwt.util"
 
-/**
- * Denne middlewaren sjekker om en bruker ER logget inn,
- * men blokkerer IKKE hvis de ikke er det.
- * Den bare legger til req.user hvis tokenet er gyldig.
- */
 const optionalAuth = async (req: RequestWithUser, res: Response, next: NextFunction) => {
   const header = req.headers["authorization"]
   const issuer = req.headers["host"]
 
-  // Hvis ingen header, bare fortsett. Brukeren er gjest.
+  // If no header, just continue. User is a guest.
   if (typeof header === "undefined") {
     return next()
   }
@@ -25,7 +25,7 @@ const optionalAuth = async (req: RequestWithUser, res: Response, next: NextFunct
   const token = bearer[1]
 
   if (!token) {
-    return next() // Ingen token, fortsett som gjest
+    return next() // No token, continue as guest
   }
 
   let verifyOptions = {
@@ -38,7 +38,7 @@ const optionalAuth = async (req: RequestWithUser, res: Response, next: NextFunct
 
   const { decoded } = decode(token)
 
-  // Hvis token er ugyldig eller mangler ID, fortsett som gjest
+  // If token is invalid or missing ID, continue as guest
   if (!decoded || !get(decoded, "id")) {
     return next()
   }
@@ -48,11 +48,10 @@ const optionalAuth = async (req: RequestWithUser, res: Response, next: NextFunct
   try {
     const user = await UserService.findUser({ _id: userId })
     if (user) {
-      req.user = user // Legg til bruker på requesten
+      req.user = user // Add user to the request
     }
   } catch (error) {
-    // Noe gikk galt (f.eks. ugyldig token), men vi blokkerer ikke.
-    // Vi bare fortsetter som gjest.
+    // Something went wrong (e.g., invalid token), but we don't block.
   }
   
   next()
