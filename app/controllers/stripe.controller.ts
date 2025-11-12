@@ -23,7 +23,7 @@ const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
     name: 'TSM Payment',
     version: '1.0.0'
   }
-})
+} )
 
 const getAllProductsAndPlans = async (req: Request, res: Response) => {
   return Promise.all(
@@ -297,18 +297,14 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
         gateway: "STRIPE",
         product: planId,
         price: priceId,
-        paymentFirst: userId ? 'false' : 'true', // Settes basert på om userId finnes
+        paymentFirst: userId ? 'false' : 'true',
         email: email || '',
-        flow: flow || (userId ? 'register-first' : 'payment-first'), // Settes basert på om userId finnes
+        flow: flow || (userId ? 'register-first' : 'payment-first' ),
       },
 
-      // **** HER ER DEN SISTE VIKTIGE ENDRINGEN ****
-      // Vi sjekker om `userId` finnes (er null/undefined), ikke `req.body.flow`
-      // FORCING A REBUILD - v5 (Dette er den "meningsløse" endringen)
       success_url: !userId
         ? `${FRONTEND_URL}/register?sessionId={CHECKOUT_SESSION_ID}&status=success&flow=payment-first`
         : `${FRONTEND_URL}/payment-success?userId=${userId}&status=success&flow=register-first`,
-      // **** SLUTT PÅ ENDRING ****
 
       cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
     }
@@ -325,7 +321,6 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
         sessionOptions.customer = customer.id
       } catch (error) {
         console.error('Error creating customer:', error)
-        // Continue without customer ID if creation fails
       }
     }
 
@@ -392,12 +387,12 @@ const validateCoupon = async (req: Request, res: Response) => {
         coupon
       }
     })
-  } catch (error) {
-    console.log('error ==', error)
+  } catch (error: any) {
+    console.error('Stripe Coupon Error:', error.message || error)
     return res.status(400).send({
       status: false,
       message: "Invalid coupon code",
-      error: error
+      error: error.message || error
     })
   }
 }
@@ -662,195 +657,74 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
         paymentType: tempPayment.paymentType,
         amount: tempPayment.amount,
         currency: tempPayment.currency,
-        email: tempPayment.email || (session ? session.customer_details?.email : undefined),
-        note: session ? undefined : 'Session data retrieved from database, not available in Stripe'
+        email: tempPayment.email,
+        metadata: tempPayment.metadata
       }
     });
   } catch (error: any) {
-    console.error(`Error verifying checkout session: ${error.message}`);
+    console.error(`Error in verifyCheckoutSession: ${error.message}`);
     return res.status(500).send({
       status: false,
-      message: error.message
+      message: 'Internal server error while verifying session'
     });
   }
 };
 
 /**
-* Register a user after successful payment
+* Handle Stripe webhook events
 * @param req Request
 * @param res Response
 * @returns JSON
 */
-const registerAfterPayment = async (req: Request, res: Response) => {
-  let statusCode = 500;
+const handleWebhook = async (req: Request, res: Response) => {
+  const sig = req.headers['stripe-signature'] as string;
+  const endpointSecret = process.env.WEBHOOK_ENDPOINT_SECRET || '';
+
+  let event: Stripe.Event;
 
   try {
-    console.log("Register after payment called with body:", JSON.stringify(req.body));
-    const { sessionId, firstName, lastName, email, password, age } = req.body;
-
-    // Validate required fields
-    if (!sessionId || !firstName || !lastName || !email || !password || !age) {
-      statusCode = 400;
-      throw new Error('All fields are required');
-    }
-
-    // Verify the session exists and payment was successful
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (session.payment_status !== 'paid') {
-      statusCode = 400;
-      throw new Error('Payment was not successful');
-    }
-
-    // Check if the temp payment record exists
-    const tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
-
-    if (!tempPayment) {
-      statusCode = 404;
-      throw new Error('Payment record not found');
-    }
-
-    // Check if this session was already used to register a user
-    if (tempPayment.paymentStatus === 'registered') {
-      statusCode = 400;
-      throw new Error('This payment has already been used to register a user');
-    }
-
-    // Check if user with this email already exists
-    const existingUser = await UserService.findUser({ email });
-
-    if (existingUser) {
-      statusCode = 400;
-      throw new Error(`The email address ${email} already exists.`);
-    }
-
-    // Create the user
-    const user = await UserService.createUser({
-      email,
-      password,
-      firstName,
-      lastName,
-      age: Number(age),
-      role: "patient",
-      isPaid: true,
-      exerciseStartDate: new Date(),
-      isVerified: false // Changed from true to false to require email verification
-    });
-
-    // Update the temp payment record
-    await TempPaymentService.updateByCheckoutSessionId(sessionId, {
-      paymentStatus: 'registered',
-      email
-    });
-
-    // Create financial record
-    const financialData = {
-      userId: user._id,
-      currency: tempPayment.currency,
-      amount: tempPayment.amount,
-      status: 'succeeded',
-      paymentType: tempPayment.paymentType === 'SUBSCRIPTION' ? 'recurring' : 'one-time',
-      stripeReference: session.payment_intent as string,
-      checkoutSessionId: sessionId
-    };
-
-    await StripeService.createFinancialRecord(financialData);
-
-    // Send email verification
-    await sendEmailVerification(user, req); // <-- Denne er fikset (Feil #1)
-
-    // Generate token for the user
-    const token = (user as any).generateJWT();
-
-    // Send email notification
-    addJobSendMailQuestionLinkCreation(
-      {
-        userId: user._id,
-        email: user.email,
-        userName: `${user.firstName} ${user.lastName}`
-      },
-      user._id
-    );
-
-    return res.status(200).json({
-      status: true,
-      data: {
-        user,
-        token
-      },
-      message: "Registration successful! Please check your email to verify your account."
-    });
-  } catch (error: any) {
-    console.error("Error in registerAfterPayment:", error);
-    return res.status(statusCode).json({
-      status: false,
-      message: error.message || "Registration failed"
-    });
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err: any) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-};
 
-/**
-* Manually update the payment status for a specific checkout session
-* This is useful for fixing records where payment was successful but status is still pending
-* @param req Request
-* @param res Response
-* @returns JSON
-*/
-const manualUpdateSessionStatus = async (req: Request, res: Response) => {
-  try {
-    const { sessionId } = req.body;
+  // Handle the event
+  switch (event.type) {
+    case 'checkout.session.completed':
+      const session = event.data.object as Stripe.Checkout.Session;
+      console.log('Webhook: checkout.session.completed', session.id);
 
-    if (!sessionId) {
-      return res.status(400).send({
-        status: false,
-        message: "Session ID is required"
-      });
-    }
-
-    // Find the payment record
-    const tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
-
-    if (!tempPayment) {
-      return res.status(404).send({ // Fikset 40OS til 404
-        status: false,
-        message: "Payment record not found"
-      });
-    }
-
-    // Update the payment status to succeeded
-    await TempPaymentService.updateByCheckoutSessionId(sessionId, {
-      paymentStatus: 'succeeded'
-    });
-
-    return res.status(200).send({
-      status: true,
-      message: "Payment status updated successfully",
-      data: {
-        sessionId,
-        previousStatus: tempPayment.paymentStatus,
-        newStatus: 'succeeded'
+      // If this was a payment-first flow, update the temp payment record
+      if (session.metadata?.paymentFirst === 'true') {
+        await TempPaymentService.updateByCheckoutSessionId(session.id, {
+          paymentStatus: 'succeeded',
+          paymentIntentId: session.payment_intent as string,
+          email: session.customer_details?.email || undefined
+        });
       }
-    });
-  } catch (error: any) {
-    return res.status(500).send({
-      status: false,
-      message: error.message
-    });
+      break;
+
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
   }
+
+  // Return a 200 response to acknowledge receipt of the event
+  res.json({ received: true });
 };
 
 export default {
   getAllProductsAndPlans,
   createSubscription,
-  chargeCard,
   unsubscribeUser,
+  chargeCard,
   upgradeSubscription,
   checkout,
   validateCoupon,
   listAvailableCoupons,
   manualUpdatePaidStatus,
-  manualUpdateSessionStatus,
   confirmPaymentSuccess,
   verifyCheckoutSession,
-  registerAfterPayment
+  handleWebhook
 }
