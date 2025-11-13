@@ -105,9 +105,6 @@ app.use((req, res, next) => {
     next()
 })
 
-// FIX: Removed the conditional express.json() block which was causing compilation errors.
-// The raw body parser for stripe-hooks is handled below, and the main JSON body parser is handled globally.
-
 /** Parse the body of the request */
 app.use(bodyParser.urlencoded({ extended: true }))
 
@@ -127,7 +124,8 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(session({
     resave: false,
     saveUninitialized: true,
-    secret: process.env.COOKIEKEY || ""
+    // FIX: Cast the secret to the expected type to resolve TS2345 error
+    secret: (process.env.COOKIEKEY || "") as string | string[]
 }))
 
 app.use(passport.initialize())
