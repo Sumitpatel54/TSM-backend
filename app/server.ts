@@ -86,7 +86,8 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', '*'],
     credentials: true,
 }));
-// Explicitly handle OPTIONS method for CORS preflight
+
+// FIX: Explicitly handle OPTIONS method for CORS preflight to prevent 400/CORS errors
 app.options('*', cors());
 
 app.use(express.static(path.join(__dirname, 'public')))
@@ -140,7 +141,6 @@ app.use(session({
 
 app.use(passport.initialize())
 app.use(passport.session())
-
 
 
 // passport.use('facebookToken', new facebookTokenStrategy({
@@ -271,7 +271,3 @@ httpServer.listen(PORT, () => {
 })
 
 export default app
-
-
-
-
