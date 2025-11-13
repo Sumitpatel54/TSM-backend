@@ -86,6 +86,8 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', '*'],
     credentials: true,
 }));
+// Explicitly handle OPTIONS method for CORS preflight
+app.options('*', cors());
 
 app.use(express.static(path.join(__dirname, 'public')))
 
