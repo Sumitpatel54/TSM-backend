@@ -87,9 +87,6 @@ app.use(cors({
     credentials: true,
 } ));
 
-// We are removing the app.options('*', cors()); line that caused the compilation error.
-// The main app.use(cors()) should be sufficient if the middleware order is correct.
-
 app.use(express.static(path.join(__dirname, 'public')))
 
 /** Log the request */
@@ -108,14 +105,8 @@ app.use((req, res, next) => {
     next()
 })
 
-
-app.use((req, res, next) => {
-    if (req.originalUrl === "/stripe-hooks") {
-        next()
-    } else {
-        express.json()(req, res, next)
-    }
-})
+// FIX: Removed the conditional express.json() block which was causing compilation errors.
+// The raw body parser for stripe-hooks is handled below, and the main JSON body parser is handled globally.
 
 /** Parse the body of the request */
 app.use(bodyParser.urlencoded({ extended: true }))
