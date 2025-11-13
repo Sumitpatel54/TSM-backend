@@ -324,7 +324,7 @@ const apiCheckAuthenticationUser = async (req: Request, res: Response, _next: Ne
   } else {
     return res.status(HttpStatusCode.BAD_REQUEST).send({
       status: false,
-      message: "Authentication Failed"
+      message: "Admin not found by Given Email"
     })
   }
 }
@@ -386,35 +386,24 @@ const register = async (req: Request, res: Response) => {
     // save user to mongo db
     const user_ = await UserService.createUser({ email, password, firstName, lastName, age: Number(age), role: "patient" })
 
-    // send email verification
-    // await sendEmailVerification(user_, req)
+    // send email verification - RESTORED
+    await sendEmailVerification(user_, req)
 
-    // Generate token for immediate use
-    const token = (user_ as any).generateJWT()
+    // NOTE: We no longer log the user in immediately.
+    // The user must verify their email first.
+    // The user's isVerified flag is set to false by default in the model.
+    // The following lines are removed to prevent immediate login and token generation:
+    // const token = (user_ as any).generateJWT()
+    // await user_.save() // user_.save() is not needed here as createUser already saves it, and isVerified is false by default
 
-    // Set user as verified to allow immediate access (optional - remove if you still want email verification)
-    // user_.isVerified = true
-    await user_.save()
-
-
-    // Return user data and token
+    // Return success message indicating email was sent
     return res.status(200).json({
       status: true,
       data: {
-        user: user_,
-        token: token
+        user: user_
       },
-      message: "Patient Record Created"
+      message: `A verification email has been sent to ${user_?.firstName}`
     });
-
-    // return res.status(200).json({
-    //   status: true,
-    //   data: {
-    //     user: user_,
-    //     token: token
-    //   },
-    //   message: `A verification email has been sent to ${user_?.firstName}`
-    // });
 
   } catch (error: any) {
     console.log("Error in register controller:", error)
@@ -458,6 +447,7 @@ const resendEmail = async (req: Request, res: Response) => {
  * @summary - Verify registration token
  * @param req
  * @param res
+ * @param next
  */
 const verifyRegistrationToken = async (req: Request, res: Response) => {
   let _statusCode = 500
@@ -784,7 +774,8 @@ const getGoogleUserData = async (req: Request, res: Response) => {
     return res.status(500).json({
       status: false,
       message: 'Internal server error'
-    });
+    }
+    );
   }
 };
 
@@ -858,4 +849,3 @@ const googleSignIn = async (req: Request, res: Response) => {
 };
 
 export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail, googleCallback, getGoogleUserData, googleSignIn }
-
