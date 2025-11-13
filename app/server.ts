@@ -43,7 +43,7 @@ import authBypassRoutes from "./routes/auth-bypass.route"
 // Suppress AWS SDK v2 maintenance warning
 process.env.AWS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = 'true';
 
-dotenv.config();
+dotenv.config( );
 const NAMESPACE = "Scandinavian Server"
 const app = express()
 
@@ -85,10 +85,10 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', '*'],
     credentials: true,
-}));
+} ));
 
-// FIX: Explicitly handle OPTIONS method for CORS preflight to prevent 400/CORS errors
-app.options('*', cors());
+// We are removing the app.options('*', cors()); line that caused the compilation error.
+// The main app.use(cors()) should be sufficient if the middleware order is correct.
 
 app.use(express.static(path.join(__dirname, 'public')))
 
@@ -186,7 +186,7 @@ app.use(passport.session())
 //     // callbackURL: `http://localhost:8000/auth/callback/google`,
 //     clientID: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_ID!,
 //     clientSecret: config.GOOGLE_OAUTH_CREDENTIALS.CLIENT_SECRET!,
-// }, async (accessToken, refreshToken, profile, done) => {
+// }, async (accessToken, refreshToken, profile, done ) => {
 //     try {
 //         const { id: googleId, _json } = profile
 
@@ -252,7 +252,7 @@ app.get("/", (_req: Request, res: Response) => {
 
 //app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 
-const httpServer = http.createServer(app)
+const httpServer = http.createServer(app )
 const PORT = process.env.PORT || 8000;
 
 
@@ -266,7 +266,7 @@ app.use((err: any, req: Request, res: Response, next: any) => {
     });
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, ( ) => {
     logging.info(NAMESPACE, `Server is running on ${config.server.hostname}:${config.server.port}`)
 })
 
