@@ -480,8 +480,8 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
     // Use await to ensure the save operation completes successfully (Fix for verification failure)
     await user.save() 
 
-    // Delete the token after successful verification (Best Practice)
-    await UserService.deleteToken({ token: req.params.token })
+    // Delete the token after successful verification (Fix for the deleteToken error)
+    await token.remove() // Assuming token is a Mongoose document
 
     // Redirect to login page after successful verification with a success flag
     res.status(301).redirect(`${config.API_URL}/login?verified=true`)
@@ -491,7 +491,6 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
     res.status(301).redirect(`${config.API_URL}/login?verified=false`)
   }
 }
-
 
 
 
@@ -775,8 +774,7 @@ const getGoogleUserData = async (req: Request, res: Response) => {
     return res.status(500).json({
       status: false,
       message: 'Internal server error'
-    }
-    );
+    });
   }
 };
 
