@@ -447,7 +447,6 @@ const resendEmail = async (req: Request, res: Response) => {
  * @summary - Verify registration token
  * @param req
  * @param res
- * @param next
  */
 const verifyRegistrationToken = async (req: Request, res: Response) => {
   let _statusCode = 500
@@ -456,7 +455,7 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
     // validate request
     commonUtilitie.validateRequestForEmptyValues({ token: req.params.token })
 
-    // Find  match token
+    // Find match token
     const token = await UserService.findToken({ token: req.params.token })
     if (!token) {
       _statusCode = 400
@@ -477,20 +476,22 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
 
     // verify and save the user
     user.isVerified = true
+    
+    // Use await to ensure the save operation completes successfully (Fix for verification failure)
+    await user.save() 
 
-    user.save((err) => {
-      if (err) {
-        return res.status(500).json({ status: false, message: err.message })
-      }
+    // Delete the token after successful verification (Best Practice)
+    await UserService.deleteToken({ token: req.params.token })
 
-      // res.status(200).send(`The account has been verified, please Log In`)
-      res.status(301).redirect(`${config.API_URL}/login`)
-    })
+    // Redirect to login page after successful verification with a success flag
+    res.status(301).redirect(`${config.API_URL}/login?verified=true`)
+
   } catch (error: any) {
-    // res.status(statusCode).json({ status: false, message: error.message })
-    res.status(301).redirect(`${config.API_URL}/login`)
+    // If an error occurs, redirect to login with a failure flag
+    res.status(301).redirect(`${config.API_URL}/login?verified=false`)
   }
 }
+
 
 
 
