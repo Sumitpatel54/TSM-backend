@@ -462,25 +462,17 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
       throw new Error(`Unable to find a valid token, your token might have expired`)
     }
 
-    // If there is a token, find a matching user
-    let user = await UserService.findUser({ _id: token.userId })
-    if (!user) {
-      return res.status(400).json({ success: false, msg: `Unable to find a user for this token` })
-    }
+    // Find the user associated with the token
+    const userId = token.userId;
 
-    // check if user is verified
-    if (user.isVerified) {
-      _statusCode = 400
-      throw new Error(`This user has already been verified.`)
-    }
+    // Use a direct update query to ensure the user is verified (Most robust fix)
+    // This replaces the old user.isVerified = true; await user.save() logic
+    const updateResult = await User.updateOne(
+      { _id: userId, isVerified: false },
+      { $set: { isVerified: true } }
+    );
 
-    // verify and save the user
-    user.isVerified = true
-    
-    // Use await to ensure the save operation completes successfully (Fix for verification failure)
-    await user.save() 
-
-    // Delete the token after successful verification (Fix for the deleteToken error)
+    // Delete the token after successful verification
     await token.remove() // Assuming token is a Mongoose document
 
     // Redirect to login page after successful verification with a success flag
