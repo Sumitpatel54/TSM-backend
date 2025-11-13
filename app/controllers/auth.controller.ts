@@ -324,66 +324,40 @@ const apiCheckAuthenticationUser = async (req: Request, res: Response, _next: Ne
   } else {
     return res.status(HttpStatusCode.BAD_REQUEST).send({
       status: false,
-      message: "Admin not found by Given Email"
+      message: "Authentication Failed"
     })
   }
 }
 
-/**
- * Used to generate access token and refresh token
- *
- * @param user
- * @returns object
- */
-const generateAccessTokenAndRefreshToken = async (user: UserDocument, req: Request) => {
-  const issuer = req.headers["host"]
-  // console.log("issuer", issuer)
-
-  // Create Access Token
-  const accessToken = createAccessToken({ user, issuer })
-  const newRefreshToken: any = await generateRefreshToken(user, req.ip)
-
-  return { accessToken, refreshToken: newRefreshToken.token }
+const generateAccessTokenAndRefreshToken = async (user: any, req: Request) => {
+  const token = user.generateJWT()
+  const refreshToken = await generateRefreshToken(user._id, req)
+  return { token, refreshToken }
 }
 
-
 /**
- * @summary - Register's a user
- * @param {*} req
- * @param {*} res
+ * @summary - Register a patient
+ * @param req
+ * @param res
  * @returns
  */
 const register = async (req: Request, res: Response) => {
   let statusCode = 500
 
   try {
-    let user
     const { email, password, firstName, lastName, age } = req.body
 
     // validate request
     commonUtilitie.validateRequestForEmptyValues({ email, password, firstName, lastName, age })
 
-    // validate email
-    if (!validator.isEmail(email)) {
+    // check if the current user exist
+    const userExist = await UserService.findUser({ email })
+    if (userExist) {
       statusCode = 400
-      throw new Error("Email is invalid.")
+      throw new Error("User already exist.")
     }
 
-    // validate password
-    if ((password.length < 8) || (!/\d/.test(password))) {
-      statusCode = 400
-      throw new Error("Password must be at least 8 characters long and must contain a combination of letters and numbers.")
-    }
-
-    // check if account doesn't already exists
-    user = await UserService.findUser({ email })
-
-    if (user) {
-      statusCode = 400
-      throw new Error(`The email address ${email} already exists.`)
-    }
-
-    // save user to mongo db
+    // create a new user
     const user_ = await UserService.createUser({ email, password, firstName, lastName, age: Number(age), role: "patient" })
 
     // send email verification - RESTORED
@@ -392,9 +366,8 @@ const register = async (req: Request, res: Response) => {
     // NOTE: We no longer log the user in immediately.
     // The user must verify their email first.
     // The user's isVerified flag is set to false by default in the model.
-    // The following lines are removed to prevent immediate login and token generation:
-    // const token = (user_ as any).generateJWT()
-    // await user_.save() // user_.save() is not needed here as createUser already saves it, and isVerified is false by default
+    await user_.save()
+
 
     // Return success message indicating email was sent
     return res.status(200).json({
@@ -411,33 +384,42 @@ const register = async (req: Request, res: Response) => {
   }
 }
 
+/**
+ * @summary - Resend verification email
+ * @param req
+ * @param res
+ * @returns
+ */
 const resendEmail = async (req: Request, res: Response) => {
   let statusCode = 500
+
   try {
-    let user
     const { email } = req.body
 
     // validate request
     commonUtilitie.validateRequestForEmptyValues({ email })
 
-    // validate email
-    if (!validator.isEmail(email)) {
+    // check if the current user exist
+    const userExist = await UserService.findUser({ email })
+    if (!userExist) {
       statusCode = 400
-      throw new Error("Email is invalid.")
+      throw new Error("User does not exist.")
     }
 
-    // check if account doesn't already exists
-    user = await UserService.findUser({ email })
+    // check if user is already verified
+    if (userExist.isVerified) {
+      statusCode = 400
+      throw new Error("User is already verified.")
+    }
 
     // send email verification
-    await sendEmailVerification(user, req)
+    await sendEmailVerification(userExist, req)
 
     return res.status(200).json({
       status: true,
-      data: {
-        message: `A verification email has been sent to ${user?.firstName} `
-      }
+      message: `A verification email has been sent to ${userExist.email}`
     })
+
   } catch (error: any) {
     res.status(statusCode).json({ status: false, message: error.message })
   }
@@ -462,28 +444,37 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
       throw new Error(`Unable to find a valid token, your token might have expired`)
     }
 
-    // Find the user associated with the token
-    const userId = token.userId;
+    // If there is a token, find a matching user
+    let user = await UserService.findUser({ _id: token.userId })
+    if (!user) {
+      return res.status(400).json({ success: false, msg: `Unable to find a user for this token` })
+    }
 
-    // Use a direct update query to ensure the user is verified (Most robust fix)
-    // This replaces the old user.isVerified = true; await user.save() logic
-    const updateResult = await User.updateOne(
-      { _id: userId, isVerified: false },
-      { $set: { isVerified: true } }
-    );
+    // check if user is verified
+    if (user.isVerified) {
+      _statusCode = 400
+      throw new Error(`This user has already been verified.`)
+    }
+
+    // verify and save the user
+    user.isVerified = true
+    
+    // FIX: Use the document's save method to ensure the update is atomic and correct
+    await user.save() 
 
     // Delete the token after successful verification
-    await token.remove() // Assuming token is a Mongoose document
+    await token.remove() 
 
     // Redirect to login page after successful verification with a success flag
     res.status(301).redirect(`${config.API_URL}/login?verified=true`)
 
   } catch (error: any) {
+    // Log the error to help with debugging
+    console.error("error in verifyRegistrationToken:", error)
     // If an error occurs, redirect to login with a failure flag
     res.status(301).redirect(`${config.API_URL}/login?verified=false`)
   }
 }
-
 
 
 const facebookOAuth = async (req: MyUserRequest, res: Response) => {
@@ -508,161 +499,6 @@ const facebookOAuth = async (req: MyUserRequest, res: Response) => {
     res.status(statusCode).json({ status: false, message: error.message })
   }
 }
-
-/**
- * @summary - Login a patient
- * @param {*} req
- * @param {*} res
- * @returns
- */
-const login = async (req: Request, res: Response) => {
-  let statusCode = 500
-
-  try {
-    let user: any
-    const { email, password } = req.body
-
-    // check if the current user exist
-    try {
-      user = await UserService.findUser({ email })
-    }
-    catch (err) {
-      // do nothing
-    }
-
-    if (!user) {
-      statusCode = 400
-      throw new Error("You're not a registered user.")
-    }
-
-    // validate the password
-    if (!user.comparePassword(password)) {
-      statusCode = 400
-      throw new Error(`Invalid email or password`)
-    }
-
-    // make sure the user has been verified
-    if (!user.isVerified) {
-      statusCode = 400
-      throw new Error(`Your account has not been verified`)
-    }
-
-    // Login successful, write toke, and send back user
-    let token = user.generateJWT()
-
-    return res.header("auth-token", token).status(200).json({
-      status: true,
-      data: {
-        token,
-        user
-      }
-    })
-  } catch (error: any) {
-    res.status(statusCode).json({ status: false, message: error.message })
-  }
-}
-
-interface GoogleUser {
-  id: string;
-  token: string;
-}
-
-passport.use(new GoogleStrategy.Strategy({
-  callbackURL: `${config.API_URL}/auth/callback/google`,
-  clientID: process.env.GOOGLE_CLIENT_ID || '',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-}, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
-  try {
-    const { id: googleId, _json } = profile
-
-    // First try to find user by Google ID
-    let user: any = await User.findOne({ 'google.id': googleId })
-
-    if (!user) {
-      // If not found by Google ID, try to find by email
-      if (_json && _json.email) {
-        user = await User.findOne({ email: _json.email })
-      }
-
-      if (user) {
-        // If user exists with email but no Google ID, update their Google credentials
-        user.method = user.method || 'google'
-        user.google = {
-          id: googleId,
-          token: accessToken
-        }
-        user.isVerified = true
-        await user.save()
-        console.log('Updated existing user with Google credentials');
-      } else {
-        // Create a new user if neither Google ID nor email exists
-        if (!_json || !_json.email) {
-          console.error('No email found in Google profile');
-          return done(new Error('No email found in Google profile'), false);
-        }
-
-        console.log('Creating new user from Google profile');
-        user = new User({
-          method: 'google',
-          email: _json.email,
-          firstName: _json.given_name || 'Google',
-          lastName: _json.family_name || 'User',
-          google: {
-            id: googleId,
-            token: accessToken
-          },
-          isVerified: true,
-          isActive: true,
-          role: 'patient'
-        })
-        await user.save()
-        console.log('New user created with ID:', user._id);
-      }
-    } else {
-      // Update the access token for existing Google user
-      (user.google as GoogleUser).token = accessToken
-      await user.save()
-      console.log('Updated token for existing Google user');
-    }
-
-    // Login successful, write token, and send back user
-    let token = user.generateJWT()
-
-    // const frontendURL = 'http://localhost:3000'
-    const frontendURL = 'https://client.curemigraine.org'
-    return done(null, { user, token }, { redirectTo: `${frontendURL}/home?googleLoginSuccess=true` })
-  } catch (error) {
-    console.error('Error in Google authentication strategy:', error);
-    return done(error, false)
-  }
-}))
-
-// // setting up our serialize and deserialize methods from passport
-passport.serializeUser((data: any, done) => {
-  // We're now receiving { user, token } instead of just user
-  if (data && data.user && data.user._id) {
-    done(null, { userId: data.user._id, token: data.token })
-  } else {
-    done(new Error('Invalid user data for serialization'), null)
-  }
-})
-
-passport.deserializeUser((serializedData: { userId: string, token: string }, done: (err: any, user: any) => void) => {
-  User.findById(serializedData.userId)
-    .then(user => {
-      if (user) {
-        done(null, { user, token: serializedData.token })
-      } else {
-        done(new Error('User not found'), null)
-      }
-    })
-    .catch(err => {
-      done(err, null)
-    })
-})
-
-// Add this at the top of your file
-const tempTokens = new Map();
 
 const googleCallback = async (req: Request, res: Response) => {
   try {
