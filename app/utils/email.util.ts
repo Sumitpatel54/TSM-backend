@@ -98,7 +98,7 @@ export const sendEmailVerification = async (user: any, req: any) => {
   let from = config.smtp.FROM_EMAIL // Bruker SMTP "fra"-epost
   
   // **** DENNE LINJEN ER KORRIGERT (Feil #2) ****
-  let link = `${config.LOCALS​ERVER.hostu​rl/email/verification?token={token.token}\``
+  let link = `${config.LOCAL_SERVER.host_url}/email/verification?token=${token.token}`
   
   let html = `
     <p>Hi ${user.firstName},
