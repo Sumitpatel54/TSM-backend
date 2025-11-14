@@ -675,4 +675,4 @@ const googleSignIn = async (req: Request, res: Response) => {
   }
 };
 
-export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, login, facebookOAuth, resendEmail, googleCallback, getGoogleUserData, googleSignIn }
+export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, facebookOAuth, resendEmail, googleCallback, getGoogleUserData, googleSignIn }
