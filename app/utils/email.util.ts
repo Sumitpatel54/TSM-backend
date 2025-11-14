@@ -98,7 +98,7 @@ export const sendEmailVerification = async (user: any, req: any) => {
   let from = config.smtp.FROM_EMAIL // Bruker SMTP "fra"-epost
   
   // **** DENNE LINJEN ER KORRIGERT (Feil #2) ****
-  let link = `${config.LOCAL_SERVER.host_url}/auth/verify/${token.token}`
+  let link = `${config.LOCALS​ERVER.hostu​rl/email/verification?token={token.token}\``
   
   let html = `
     <p>Hi ${user.firstName},
@@ -126,7 +126,7 @@ export const sendEmailResetPassword = async (user: any, req: any) => {
   let subject = 'Accout Verification'
   let to = user.email
   let from = config.smtp.FROM_EMAIL // Bruker SMTP "fra"-epost
-  let link = 'https://' + req.headers.host + '/auth/verify/' + token.token
+  let link = 'https://' + req.headers.host + '/email/verification?token=' + token.token
   let html = `
   <p>Hi ${user.firstName},<p><br><p>Please click on the following <a href="${link}">link</a> to verify your account.</p>`
 
