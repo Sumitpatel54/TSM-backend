@@ -65,7 +65,7 @@ const apiAdminLogin = async (req: Request, res: Response, _next: NextFunction) =
 
   //remove the static url and replce it with frontend admin dashboard url
   const templateData = {
-    url: `${config.LOCAL_SERVER.host_url}/auth/checkAuthentication/${payload.email}/${loginSecure}`
+    url: `${config.CLIENT_URL}/auth/checkAuthentication/${payload.email}/${loginSecure}`
   }
 
   const subject = `Verify your account`
@@ -116,7 +116,7 @@ const resendApiAdminLogin = async (req: Request, res: Response, _next: NextFunct
   }
 
   const templateData = {
-    url: `${config.LOCAL_SERVER.host_url}/auth/checkAuthentication/${payload.email}/${loginSecure}`
+    url: `${config.CLIENT_URL}/auth/checkAuthentication/${payload.email}/${loginSecure}`
   }
 
   const subject = `Verify your account`
@@ -171,8 +171,8 @@ const forgetPassword = async (req: Request, res: Response) => {
       email: process.env.SENDGRID_FROM_EMAIL,
       name: "Cure Migraine"
     }
-    let link = `${config.LOCAL_SERVER.host_url}/reset-password/${user.resetPasswordToken}`
-    // let link = `${config.API_URL}/reset-password/${user.resetPasswordToken}`
+    // ✅ FIXED: Use CLIENT_URL instead of LOCAL_SERVER.host_url
+    let link = `${config.CLIENT_URL}/reset-password/${user.resetPasswordToken}`
     let html = `
     <p>Hi ${user.firstName},</p>
     <p>No stress! Remembering passwords can be pain in the neck - which for some is a trigger and for some it is a symptom of migraine. Let's get you back on track so you can continue your journey to a migraine-free life.</p>
@@ -465,13 +465,13 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
     // Delete the token after successful verification
     await token.remove() 
 
-    // Redirect to login page after successful verification with a success flag
+    // ✅ ALREADY CORRECT: Redirect to login page after successful verification with a success flag
     res.status(301).redirect(`${config.CLIENT_URL}/login?verified=true`)
 
   } catch (error: any) {
     // Log the error to help with debugging
     console.error("error in verifyRegistrationToken:", error)
-    // If an error occurs, redirect to login with a failure flag
+    // ✅ ALREADY CORRECT: If an error occurs, redirect to login with a failure flag
     res.status(301).redirect(`${config.CLIENT_URL}/login?verified=false`)
   }
 }
@@ -506,7 +506,8 @@ const googleCallback = async (req: Request, res: Response) => {
 
     if (!req.user) {
       console.log('No user data in request');
-      return res.redirect('https://client.curemigraine.org/login?error=no_user_data');
+      // ✅ FIXED: Use config.CLIENT_URL instead of hardcoded URL
+      return res.redirect(`${config.CLIENT_URL}/login?error=no_user_data`);
     }
 
     const data = req.user as any;
@@ -514,7 +515,8 @@ const googleCallback = async (req: Request, res: Response) => {
 
     if (!data.user || !data.token) {
       console.log('Invalid Google callback data structure');
-      return res.redirect('https://client.curemigraine.org/login?error=invalid_data');
+      // ✅ FIXED: Use config.CLIENT_URL instead of hardcoded URL
+      return res.redirect(`${config.CLIENT_URL}/login?error=invalid_data`);
     }
 
     // Generate a temporary token
@@ -541,9 +543,8 @@ const googleCallback = async (req: Request, res: Response) => {
     await tempTokenDoc.save();
     console.log('Saved temp token to database:', tempToken);
 
-    // Redirect to frontend
-    // const frontendURL = 'http://localhost:3000';
-    const frontendURL = 'https://client.curemigraine.org';
+    // ✅ FIXED: Use config.CLIENT_URL instead of hardcoded URL
+    const frontendURL = config.CLIENT_URL;
 
     // Check if user is paid and redirect accordingly
     const isPaid = data.user.isPaid === true;
@@ -555,7 +556,8 @@ const googleCallback = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error in googleCallback:', error);
-    return res.redirect('https://client.curemigraine.org/login?error=server_error');
+    // ✅ FIXED: Use config.CLIENT_URL instead of hardcoded URL
+    return res.redirect(`${config.CLIENT_URL}/login?error=server_error`);
   }
 };
 
