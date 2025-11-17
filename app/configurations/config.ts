@@ -1,6 +1,6 @@
 import * as path from "path"
-
 import * as dotenv from "dotenv"
+
 dotenv.config({ path: path.join(__dirname, "../../.env") })
 
 const MONGO_OPTIONS = {
@@ -33,6 +33,7 @@ const SERVER = {
   hostname: SERVER_HOSTNAME,
   port: SERVER_PORT
 }
+
 const LOCAL_SERVER = {
   // host_url: 'http://localhost:3000',
   host_url: 'https://client.curemigraine.org',
@@ -40,6 +41,8 @@ const LOCAL_SERVER = {
 
 const API_URL = 'https://api.curemigraine.org'
 // const API_URL = 'http://localhost:8000'
+
+const CLIENT_URL = 'https://client.curemigraine.org'
 
 const JWT = {
   accessTokenPrivateKey: process.env.ACCESS_TOKEN_SECRET || "secret",
@@ -76,15 +79,17 @@ const STRIPE = {
   API_VERSION: `${process.env.STRIPE_API_VERSION}` || "",
   WEBHOOK_ENDPOINT_SECRET: process.env.WEBHOOK_ENDPOINT_SECRET || ""
 }
+
 const redis = {
   REDIS_PASSWORD: `${process.env.REDIS_PASSWORD}` || "",
   REDIS_URL: `${process.env.REDIS_URL}` || "",
   REDIS_PORT: `${process.env.REDIS_PORT}` || "",
 }
+
 const config = {
   server: SERVER,
   mongo: MONGO,
-  smtp, // <--- HER ER ENDRINGEN (erstattet sendGrid)
+  smtp,
   jwt: JWT,
   SERVER_HOSTNAME,
   routePermission,
@@ -93,7 +98,8 @@ const config = {
   PROGRESS_QUESTION_LINK,
   LOCAL_SERVER,
   GOOGLE_OAUTH_CREDENTIALS,
-  API_URL
+  API_URL,
+  CLIENT_URL  // ✅ ADDED THIS LINE
 }
 
 export default config
