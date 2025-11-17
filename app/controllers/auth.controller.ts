@@ -677,4 +677,57 @@ const googleSignIn = async (req: Request, res: Response) => {
   }
 };
 
-export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, facebookOAuth, resendEmail, googleCallback, getGoogleUserData, googleSignIn }
+/**
+ * @summary - Login a user with email and password
+ * @param req
+ * @param res
+ * @returns
+ */
+const login = async (req: Request, res: Response) => {
+  let statusCode = 500
+
+  try {
+    const { email, password } = req.body
+
+    // validate request
+    commonUtilitie.validateRequestForEmptyValues({ email, password })
+
+    // check if user exists
+    const user: any = await UserService.findUser({ email })
+    if (!user) {
+      statusCode = 400
+      throw new Error("Invalid email or password")
+    }
+
+    // check if user is verified
+    if (!user.isVerified) {
+      statusCode = 400
+      throw new Error("Please verify your email address before logging in")
+    }
+
+    // check password
+    const isPasswordValid = await user.comparePassword(password)
+    if (!isPasswordValid) {
+      statusCode = 400
+      throw new Error("Invalid email or password")
+    }
+
+    // generate tokens
+    const tokens: Object = await generateAccessTokenAndRefreshToken(user, req)
+
+    return res.status(200).json({
+      status: true,
+      data: {
+        ...user._doc,
+        ...tokens
+      },
+      message: "Login successful"
+    })
+
+  } catch (error: any) {
+    console.log("Error in login controller:", error)
+    res.status(statusCode).json({ status: false, message: error.message })
+  }
+}
+
+export default { apiAdminLogin, resetPassword, forgetPassword, apiCheckAuthentication, apiCheckAuthenticationUser, resendApiAdminLogin, register, verifyRegistrationToken, facebookOAuth, resendEmail, googleCallback, getGoogleUserData, googleSignIn, login }
