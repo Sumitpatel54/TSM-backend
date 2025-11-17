@@ -447,13 +447,18 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
     // If there is a token, find a matching user
     let user = await UserService.findUser({ _id: token.userId })
     if (!user) {
-      return res.status(400).json({ success: false, msg: `Unable to find a user for this token` })
+      return res.status(400).json({ 
+        success: false, 
+        message: `Unable to find a user for this token` 
+      })
     }
 
     // check if user is verified
     if (user.isVerified) {
-      _statusCode = 400
-      throw new Error(`This user has already been verified.`)
+      return res.status(200).json({
+        success: true,
+        message: `This user has already been verified.`
+      })
     }
 
     // verify and save the user
@@ -465,14 +470,21 @@ const verifyRegistrationToken = async (req: Request, res: Response) => {
     // Delete the token after successful verification
     await token.remove() 
 
-    // ✅ ALREADY CORRECT: Redirect to login page after successful verification with a success flag
-    res.status(301).redirect(`${config.CLIENT_URL}/login?verified=true`)
+    // ✅ FIXED: Return JSON instead of redirect - let frontend handle redirect
+    return res.status(200).json({
+      success: true,
+      message: "Email verified successfully"
+    })
 
   } catch (error: any) {
     // Log the error to help with debugging
     console.error("error in verifyRegistrationToken:", error)
-    // ✅ ALREADY CORRECT: If an error occurs, redirect to login with a failure flag
-    res.status(301).redirect(`${config.CLIENT_URL}/login?verified=false`)
+    
+    // ✅ FIXED: Return JSON error instead of redirect
+    return res.status(_statusCode).json({
+      success: false,
+      message: error.message || "Verification failed"
+    })
   }
 }
 
