@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
     user: config.smtp.USER,
     pass: config.smtp.PASS,
   },
-});
+})
 
 /**
  * En generell funksjon for å sende e-post med Nodemailer (via SES SMTP)
@@ -22,23 +22,23 @@ export const sendEmail = async (obj: any) => {
     to: obj.to, // Mottaker-epost
     subject: obj.subject, // Emne
     html: obj.html, // Innhold
-  };
+  }
 
   try {
     // Sjekk om vi er i "production"-miljø.
     if (process.env.NODE_ENV !== 'production') {
-      console.log("IKKE-PRODUKSJON: E-post ville blitt sendt til:", obj.to);
-      console.log("Emne:", obj.subject);
+      console.log("IKKE-PRODUKSJON: E-post ville blitt sendt til:", obj.to)
+      console.log("Emne:", obj.subject)
       // console.log("Innhold:", obj.html);
-      return { messageId: 'fake-message-id-local' }; // Returner en falsk MessageId
+      return { messageId: 'fake-message-id-local' } // Returner en falsk MessageId
     }
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("E-post sendt via SES (Nodemailer):", info.messageId);
-    return info;
+    const info = await transporter.sendMail(mailOptions)
+    console.log("E-post sendt via SES (Nodemailer):", info.messageId)
+    return info
   } catch (error) {
-    console.error("Feil ved sending av e-post med Nodemailer:", error);
-    throw error;
+    console.error("Feil ved sending av e-post med Nodemailer:", error)
+    throw error
   }
 }
 
@@ -96,10 +96,10 @@ export const sendEmailVerification = async (user: any, req: any) => {
   let subject = 'Confirm Your Email to Begin Your Journey'
   let to = user.email
   let from = config.smtp.FROM_EMAIL // Bruker SMTP "fra"-epost
-  
+
   // **** DENNE LINJEN ER KORRIGERT (Feil #2) ****
   let link = `${config.LOCAL_SERVER.host_url}/email/verification?token=${token.token}`
-  
+
   let html = `
     <p>Hi ${user.firstName},
     <p>Welcome to The Scandinavian Method! We’re excited to help you take the first step toward a migraine-free life.</p>
@@ -217,7 +217,7 @@ export const sendEmailWhenUserSignsUp = async (user: any, _req: any) => {
 
 export const sendTemplate = async (email: string, subject: string, templateId: string, dynamicTemplateData: object) => {
   try {
-    // Denne logikken var SendGrid-spesifikk (templateId). 
+    // Denne logikken var SendGrid-spesifikk (templateId).
     // Den må bygges om hvis den skal brukes med SES.
     // For nå sender vi en enkel e-post som viser at den må fikses.
     const html = `
@@ -225,17 +225,17 @@ export const sendTemplate = async (email: string, subject: string, templateId: s
       <p>Denne funksjonen må bygges om til å bruke SES-maler i stedet for SendGrid-maler.</p>
       <p><b>Template ID:</b> ${templateId}</p>
       <p><b>Data:</b> ${JSON.stringify(dynamicTemplateData)}</p>
-    `;
-    
+    `
+
     await sendEmail({
       from: config.smtp.FROM_EMAIL,
       to: email,
       subject: `[DEBUG] ${subject}`,
       html: html
-    });
-    
+    })
+
   } catch (error: any) {
-    console.error("Feil i 'sendTemplate':", error.message);
+    console.error("Feil i 'sendTemplate':", error.message)
     throw new Error(error.message)
   }
 }

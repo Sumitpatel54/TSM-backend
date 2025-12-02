@@ -29,5 +29,9 @@ export interface UserDocument extends mongoose.Document {
   questionnaireAnswersAfter60Days: Object
   reportBlockAfter60Days: Object
   completedSections?: number
+  comparePassword: (password: any) => boolean
+  generateJWT: () => string
+  generatePasswordReset: () => void
+  generateVerificationToken: () => any
 }
 

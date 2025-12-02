@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 /* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable no-empty */
@@ -692,7 +693,7 @@ const handleWebhook = async (req: Request, res: Response) => {
   // Handle the event
   switch (event.type) {
     case 'checkout.session.completed':
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session:any = event.data.object as Stripe.Checkout.Session;
       console.log('Webhook: checkout.session.completed', session.id);
 
       // If this was a payment-first flow, update the temp payment record
@@ -764,7 +765,7 @@ const registerAfterPayment = async (req: Request, res: Response) => {
 
     // 3. Create User
     // We set isPaid: true and isVerified: true (since they paid)
-    const user = await UserService.createUser({
+    const user:any = await UserService.createUser({
         email,
         password,
         firstName,
