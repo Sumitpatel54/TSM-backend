@@ -167,10 +167,7 @@ const forgetPassword = async (req: Request, res: Response) => {
     // Send email
     let subject = `Password change request`
     let to = user.email
-    let from = {
-      email: process.env.SENDGRID_FROM_EMAIL,
-      name: "Cure Migraine"
-    }
+    let from = config.smtp.FROM_EMAIL
     // ✅ FIXED: Use CLIENT_URL instead of LOCAL_SERVER.host_url
     let link = `${config.CLIENT_URL}/reset-password/${user.resetPasswordToken}`
     let html = `
@@ -331,7 +328,8 @@ const apiCheckAuthenticationUser = async (req: Request, res: Response, _next: Ne
 
 const generateAccessTokenAndRefreshToken = async (user: any, req: Request) => {
   const token = user.generateJWT()
-  const refreshToken = await generateRefreshToken(user._id, req)
+  const ipAddress = req.ip || req.socket.remoteAddress || "Unknown";
+  const refreshToken = await generateRefreshToken(user._id, ipAddress)
   return { token, refreshToken }
 }
 

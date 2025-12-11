@@ -16,7 +16,7 @@ router.get("/checkAuthentication/:email", AuthController.apiCheckAuthenticationU
 // patient auth
 router.post("/register", AuthController.register)
 router.post("/resend-email", AuthController.resendEmail)
-// router.post('/login', AuthController.login)  // TODO: Implement login function if needed
+router.post('/login', AuthController.login as any)
 
 router.post('/forgot-password', AuthController.forgetPassword)
 router.post('/reset-password/:token', AuthController.resetPassword)

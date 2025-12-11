@@ -55,7 +55,8 @@ const requireUserToLogin = (req: any, res: any, next: any) => {
         }
 
         const payload: any = jwt.verify(token, process.env.JWT_SECRET || "");
-        if (payload.role !== "patient") {
+        console.log("DEBUG ROLE:", payload.role, "| HELE PAYLOAD:", JSON.stringify(payload));
+        if (payload.role !== "patient" && payload.role !== "admin") {
             return res.status(403).json({ status: false, message: 'Unauthorized role' });
         }
 

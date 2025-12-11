@@ -39,6 +39,7 @@ import userRoutes from "./routes/user.route"
 import dailyTipRoutes from "./routes/daily-tip.routes";
 import stripeWebHookRoutes from "./routes/stripeWebHookRoutes.route"
 import authBypassRoutes from "./routes/auth-bypass.route"
+import journalRoutes from "./routes/journal.route"
 
 // Suppress AWS SDK v2 maintenance warning
 process.env.AWS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = 'true';
@@ -81,7 +82,7 @@ mongoose.connection.on('reconnected', () => {
 mongoose.Promise = global.Promise
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://tsm-prod.vercel.app', 'https://api.curemigraine.org', 'https://tsm-web.vercel.app', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app', 'https://client.curemigraine.org'],
+    origin: ['http://localhost:3000', 'https://tsm-prod.vercel.app', 'https://api.curemigraine.org', 'https://tsm-web.vercel.app', 'http://localhost:8000', 'https://tsm-web-git-admin-dashboard-the-scandinavian-method.vercel.app', 'https://tsm-prod-git-main-the-scandinavian-method.vercel.app', 'https://client.curemigraine.org', 'https://headachejournal.curemigraine.org'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     credentials: true,
@@ -104,6 +105,9 @@ app.use((req, res, next) => {
 
     next()
 })
+
+// Moved Webhook-route  (before body-parser):
+app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 
 /** Parse the body of the request */
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -226,11 +230,11 @@ app.use("/exercise", exerciseRoutes)
 app.use("/stressManagement", stressManagementRoutes)
 app.use("/program", programRoutes)
 app.use("/financial", stripeRoutes)
-app.use("/stripe-hooks", express.raw({ type: "*/*" }), stripeWebHookRoutes)
 app.use("/api/public", authBypassRoutes) // New route that completely bypasses authentication
 app.use('/stats', statsRoutes)
 app.use('/user', userRoutes)
 app.use("/dailyTips", dailyTipRoutes)
+app.use("/journal", journalRoutes)
 
 // simple route
 app.get("/", (_req: Request, res: Response) => {

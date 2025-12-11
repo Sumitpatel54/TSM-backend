@@ -549,7 +549,8 @@ const apiProvideAnswers = async (req: Request, res: Response) => {
     }
 
     // If no direct next question, try to find by question number
-    if (!nextQuestionResponse) {
+    // BUT only if the action is not "Finish" (which explicitly ends the questionnaire)
+    if (!nextQuestionResponse && obj?.action !== "Finish") {
       try {
         const retrieveNextQuestionnaireResponse = await QuestionnaireService.retrieveNextQuestionnaire({
           questionNumber: { $gt: questionNo },

@@ -1,4 +1,3 @@
-/* eslint-disable no-case-declarations */
 /* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable no-empty */
@@ -14,7 +13,6 @@ import TempPaymentService from "../services/temp-payment.service"
 import CommonFunctions from "../utilities/common"
 import User from "../models/user.model"
 import { addJobSendMailQuestionLinkCreation } from "../configurations/bullMq"
-// Import the email verification function
 import { sendEmailVerification } from "../utils/email.util"
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
@@ -24,7 +22,7 @@ const stripe = new Stripe(process.env.STRIPE_API_SECRET || "", {
     name: 'TSM Payment',
     version: '1.0.0'
   }
-} )
+})
 
 const getAllProductsAndPlans = async (req: Request, res: Response) => {
   return Promise.all(
@@ -52,7 +50,7 @@ const getAllProductsAndPlans = async (req: Request, res: Response) => {
       product.plans = filteredPlans
 
       const price = await stripe.prices.retrieve(
-        product.default_price
+        product.default_price as string
       )
 
       product.price = price
@@ -235,21 +233,11 @@ const upgradeSubscription = async (req: Request, res: Response) => {
   }
 }
 
-/**
-* API to generate the payment-intent or setup-intent for payment/ subscription
-* @param req Request
-* @param res Response
-* @param next NextFunction
-* @returns JSON
-*/
 const checkout = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // For payment-first flow, userId is optional
     const userId: any = req.user?.id
     let { paymentType, planId, priceId, amount, currency, email, flow } = req.body
-    let intent: Stripe.SetupIntent | Stripe.PaymentIntent | undefined
 
-    // validate paymentType
     if (paymentType !== "SUBSCRIPTION" && paymentType !== "ONE_TIME_PURCHASE") {
       return next(new HttpException(HttpStatusCode.BAD_REQUEST, "paymentType has to either of this two: 'SUBSCRIPTION' or 'ONE_TIME_PURCHASE'"))
     }
@@ -270,11 +258,9 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       return next(new HttpException(HttpStatusCode.BAD_REQUEST, 'Please provide the valid currency to process further'))
     }
 
-    // For payment-first flow, we don't require a user to be logged in
     let stripeCustomerId = null
     let user = null
 
-    // If userId exists, get the user's stripe customer ID
     if (userId) {
       user = await UserService.findUser({ _id: userId })
       user = user?.toObject()
@@ -285,7 +271,6 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       ? 'https://client.curemigraine.org'
       : 'https://client.curemigraine.org'
 
-    // Create the session options object without customer field initially
     const sessionOptions: Stripe.Checkout.SessionCreateParams = {
       line_items: [{
         price: priceId,
@@ -310,11 +295,9 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       cancel_url: `${FRONTEND_URL}/payment?status=cancelled`,
     }
 
-    // Only add customer if we have a valid stripeCustomerId or valid email
     if (stripeCustomerId) {
       sessionOptions.customer = stripeCustomerId
     } else if (email && email.trim() !== '') {
-      // Create a new customer with the provided email
       try {
         const customer = await stripe.customers.create({
           email: email.trim()
@@ -325,13 +308,10 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
       }
     }
 
-    // Set the mode based on payment type
     sessionOptions.mode = paymentType === 'SUBSCRIPTION' ? 'subscription' : 'payment'
 
-    // Create checkout session
     const session = await stripe.checkout.sessions.create(sessionOptions)
 
-    // Store temp payment info if this is a payment-first flow
     if (!userId) {
       await TempPaymentService.createTempPayment({
         checkoutSessionId: session.id,
@@ -366,14 +346,12 @@ const checkout = async (req: Request, res: Response, next: NextFunction) => {
 const validateCoupon = async (req: Request, res: Response) => {
   try {
     const { code } = req.body
-    // First list promotion codes and find the matching one
     const promotionCodes = await stripe.promotionCodes.list({
       code: code,
       active: true,
       limit: 1
     });
 
-    console.log('promotionCodes ==', promotionCodes)
     if (promotionCodes.data.length === 0) {
       throw new Error("Invalid coupon code");
     }
@@ -389,7 +367,6 @@ const validateCoupon = async (req: Request, res: Response) => {
       }
     })
   } catch (error: any) {
-    console.error('Stripe Coupon Error:', error.message || error)
     return res.status(400).send({
       status: false,
       message: "Invalid coupon code",
@@ -429,12 +406,6 @@ const listAvailableCoupons = async (req: Request, res: Response) => {
   }
 };
 
-/**
-* Manual endpoint to update isPaid flag (for testing only)
-* @param req Request
-* @param res Response
-* @returns JSON
-*/
 const manualUpdatePaidStatus = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body;
@@ -446,7 +417,6 @@ const manualUpdatePaidStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // Find user
     const user = await UserService.findUser({ _id: userId });
     if (!user) {
       return res.status(404).send({
@@ -455,8 +425,7 @@ const manualUpdatePaidStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // Update user
-    const updatedUser = await UserService.updateUser(userId, {
+    await UserService.updateUser(userId, {
       isPaid: true,
       exerciseStartDate: new Date()
     });
@@ -478,17 +447,10 @@ const manualUpdatePaidStatus = async (req: Request, res: Response) => {
   }
 };
 
-/**
-* Handle payment confirmation when user returns from successful payment
-* @param req Request
-* @param res Response
-* @returns JSON
-*/
 const confirmPaymentSuccess = async (req: Request, res: Response) => {
   try {
     const { userId, status } = req.body;
 
-    // Validate required parameters
     if (!userId || !status) {
       return res.status(400).send({
         status: false,
@@ -496,7 +458,6 @@ const confirmPaymentSuccess = async (req: Request, res: Response) => {
       });
     }
 
-    // Only update if status is 'success'
     if (status !== 'success') {
       return res.status(200).send({
         status: true,
@@ -505,7 +466,6 @@ const confirmPaymentSuccess = async (req: Request, res: Response) => {
       });
     }
 
-    // Find user
     const user = await UserService.findUser({ _id: userId });
     if (!user) {
       return res.status(404).send({
@@ -514,13 +474,11 @@ const confirmPaymentSuccess = async (req: Request, res: Response) => {
       });
     }
 
-    // Update user's isPaid status and exerciseStartDate
-    const updatedUser = await UserService.updateUser(userId, {
+    await UserService.updateUser(userId, {
       isPaid: true,
       exerciseStartDate: new Date()
     });
 
-    // Send email notification
     addJobSendMailQuestionLinkCreation(
       {
         userId: userId,
@@ -547,12 +505,6 @@ const confirmPaymentSuccess = async (req: Request, res: Response) => {
   }
 };
 
-/**
-* Verify a checkout session and return its status
-* @param req Request
-* @param res Response
-* @returns JSON
-*/
 const verifyCheckoutSession = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
@@ -564,26 +516,15 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
       });
     }
 
-    console.log(`Verifying checkout session: ${sessionId}`);
-
-    // First check if we have a record in our database
     let tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
     let isPaymentSuccessful = false;
     let session: any = null;
-
-    // If user is requesting this endpoint, assume payment was successful
-    // This is needed because test sessions expire but we still need to handle them
     const manuallyUpdatePaymentStatus = true;
 
-    // Try to retrieve the session from Stripe
     try {
       session = await stripe.checkout.sessions.retrieve(sessionId);
-      console.log(`Session payment status: ${session.payment_status}`);
       isPaymentSuccessful = session.payment_status === 'paid';
     } catch (stripeError: any) {
-      console.error(`Error retrieving Stripe session: ${stripeError.message}`);
-
-      // If we can't retrieve from Stripe but have a local record, mark as successful
       if (tempPayment && manuallyUpdatePaymentStatus) {
         isPaymentSuccessful = true;
       } else if (!tempPayment) {
@@ -594,10 +535,7 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
       }
     }
 
-    // If no temp payment record is found but payment was successful, create one
     if (!tempPayment && isPaymentSuccessful && session) {
-      console.log(`No temporary payment record found for session ${sessionId}, creating one`);
-
       try {
         tempPayment = await TempPaymentService.createTempPayment({
           checkoutSessionId: sessionId,
@@ -612,58 +550,46 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
           },
           email: session.customer_details?.email || undefined
         });
-
-        console.log(`Created new temporary payment record for session ${sessionId}`);
       } catch (createError) {
         console.error(`Failed to create temporary payment record: ${createError}`);
       }
     }
 
-    // If we still don't have a temp payment record, return an error
     if (!tempPayment) {
-      console.error(`No temporary payment record found for session ${sessionId} and couldn't create one`);
       return res.status(404).send({
         status: false,
         message: 'Payment record not found'
       });
     }
 
-    // Always update the payment status to succeeded if we've determined it's successful
-    // This handles both Stripe-confirmed success and manual overrides for expired sessions
     if (isPaymentSuccessful && tempPayment.paymentStatus === 'pending') {
-      console.log(`Updating payment status to succeeded for session ${sessionId}`);
-
       const updateData: any = {
         paymentStatus: 'succeeded'
       };
 
-      // Only add these fields if we have session data from Stripe
       if (session) {
         updateData.paymentIntentId = session.payment_intent as string;
         updateData.email = session.customer_details?.email || tempPayment.email;
       }
 
       await TempPaymentService.updateByCheckoutSessionId(sessionId, updateData);
-
-      // Refresh the temp payment data
       tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId) || tempPayment;
     }
 
     return res.status(200).send({
       status: true,
       data: {
-        paymentSuccessful: isPaymentSuccessful || tempPayment.paymentStatus === 'succeeded',
+        paymentSuccessful: isPaymentSuccessful || tempPayment?.paymentStatus === 'succeeded',
         sessionId: sessionId,
-        paymentStatus: tempPayment.paymentStatus,
-        paymentType: tempPayment.paymentType,
-        amount: tempPayment.amount,
-        currency: tempPayment.currency,
-        email: tempPayment.email,
-        metadata: tempPayment.metadata
+        paymentStatus: tempPayment?.paymentStatus,
+        paymentType: tempPayment?.paymentType,
+        amount: tempPayment?.amount,
+        currency: tempPayment?.currency,
+        email: tempPayment?.email,
+        metadata: tempPayment?.metadata
       }
     });
   } catch (error: any) {
-    console.error(`Error in verifyCheckoutSession: ${error.message}`);
     return res.status(500).send({
       status: false,
       message: 'Internal server error while verifying session'
@@ -671,12 +597,6 @@ const verifyCheckoutSession = async (req: Request, res: Response) => {
   }
 };
 
-/**
-* Handle Stripe webhook events
-* @param req Request
-* @param res Response
-* @returns JSON
-*/
 const handleWebhook = async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'] as string;
   const endpointSecret = process.env.WEBHOOK_ENDPOINT_SECRET || '';
@@ -690,13 +610,10 @@ const handleWebhook = async (req: Request, res: Response) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle the event
   switch (event.type) {
     case 'checkout.session.completed':
-      const session:any = event.data.object as Stripe.Checkout.Session;
-      console.log('Webhook: checkout.session.completed', session.id);
-
-      // If this was a payment-first flow, update the temp payment record
+      // eslint-disable-next-line no-case-declarations
+      const session = event.data.object as Stripe.Checkout.Session;
       if (session.metadata?.paymentFirst === 'true') {
         await TempPaymentService.updateByCheckoutSessionId(session.id, {
           paymentStatus: 'succeeded',
@@ -705,104 +622,67 @@ const handleWebhook = async (req: Request, res: Response) => {
         });
       }
       break;
-
-    // ... handle other event types
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
 
-  // Return a 200 response to acknowledge receipt of the event
   res.json({ received: true });
 };
 
-/**
- * NEW FUNCTION: Handle registration after payment-first flow
- * @param req Request
- * @param res Response
- * @returns JSON
- */
 const registerAfterPayment = async (req: Request, res: Response) => {
   let statusCode = 500;
   try {
-    const { email, password, firstName, lastName, age, sessionId } = req.body;
+    const { sessionId, firstName, lastName, email, password, age } = req.body;
 
-    CommonFunctions.validateRequestForEmptyValues({ email, password, firstName, lastName, sessionId });
-
-    // 1. Verify Session
-    // Check local DB first
-    let tempPayment = await TempPaymentService.findByCheckoutSessionId(sessionId);
-    let isPaid = false;
-
-    if (tempPayment && tempPayment.paymentStatus === 'succeeded') {
-        isPaid = true;
-    } else {
-        // Fallback: Check Stripe directly if local DB is pending or missing
-        try {
-            const session = await stripe.checkout.sessions.retrieve(sessionId);
-            if (session.payment_status === 'paid') {
-                isPaid = true;
-            }
-        } catch (err) {
-            console.error("Stripe session check failed", err);
-        }
+    if (!sessionId || !firstName || !lastName || !email || !password || !age) {
+      return res.status(400).send({ status: false, message: 'All fields are required' });
     }
 
-    if (!isPaid) {
-        return res.status(400).send({
-            status: false,
-            message: "Payment not verified. Please contact support."
-        });
-    }
-
-    // 2. Check if user exists
-    const userExist = await UserService.findUser({ email });
-    if (userExist) {
-        return res.status(400).send({
-            status: false,
-            message: "User with this email already exists."
-        });
-    }
-
-    // 3. Create User
-    // We set isPaid: true and isVerified: true (since they paid)
-    const user:any = await UserService.createUser({
-        email,
-        password,
-        firstName,
-        lastName,
-        age: Number(age),
-        role: "patient",
-        isPaid: true,
-        isVerified: true, // Auto-verify paid users
-        exerciseStartDate: new Date(),
-        stripeCustomerId: tempPayment?.metadata?.customerId || undefined
+    const user = await UserService.createUser({
+      email,
+      password,
+      firstName,
+      lastName,
+      age: Number(age),
+      role: "patient",
+      isPaid: true,
+      exerciseStartDate: new Date(),
+      isVerified: false 
     });
 
-    // 4. Generate Token
-    const token = user.generateJWT();
+    await TempPaymentService.updateByCheckoutSessionId(sessionId, {
+      paymentStatus: 'registered',
+      email
+    });
 
-    // 5. Update TempPayment status
-    if (tempPayment) {
-        await TempPaymentService.updateTempPayment(tempPayment._id, { paymentStatus: 'registered' });
-    }
+    await StripeService.createFinancialRecord({
+        userId: user._id,
+        amount: 0, 
+        status: 'succeeded',
+        paymentType: 'one-time',
+        stripeReference: sessionId
+    });
 
-    return res.status(200).send({
-        status: true,
-        data: {
-            user,
-            token
-        },
-        message: "Registration successful"
+    // Generate token with Type Assertion to fix build error
+    const token = (user as any).generateJWT();
+
+    // Send email verification
+    await sendEmailVerification(user, req);
+
+    return res.status(200).json({
+      status: true,
+      data: { user, token },
+      message: "Registration successful! Please check your email."
     });
 
   } catch (error: any) {
-    console.error("registerAfterPayment error:", error);
-    return res.status(statusCode).send({
-        status: false,
-        message: error.message
+    console.error("Error in registerAfterPayment:", error);
+    return res.status(statusCode).json({
+      status: false,
+      message: error.message || "Registration failed"
     });
   }
-}
+};
 
 export default {
   getAllProductsAndPlans,
@@ -817,5 +697,5 @@ export default {
   confirmPaymentSuccess,
   verifyCheckoutSession,
   handleWebhook,
-  registerAfterPayment // <--- Export the new function
+  registerAfterPayment
 }
